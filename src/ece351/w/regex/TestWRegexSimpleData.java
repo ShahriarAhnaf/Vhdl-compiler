@@ -79,7 +79,7 @@ class TestWRegexSimpleData {
 		// Generalize the regex to allow multiple pins
 // throw new ece351.util.Todo351Exception();
 		
-		regexs.add("(([a-z]|[A-Z])+\\s?:(\\s+(1|0))*\\s?;\\s*)+");		// + at end, because * would match empty
+		regexs.add("(([a-z|A-Z])([a-z|A-Z])*\\s?:(\\s*(1|0))*\\s?;\\s*)+");		// + at end, because * would match empty
 	};
 	
 }
