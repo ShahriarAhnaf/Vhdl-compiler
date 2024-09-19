@@ -30,7 +30,7 @@ import ece351.util.Lexer;
 
 public final class WRecursiveDescentRecognizer {
     private final Lexer lexer;
-
+    private int stage = 0;
     public WRecursiveDescentRecognizer(final Lexer lexer) {
         this.lexer = lexer;
     }
@@ -41,7 +41,7 @@ public final class WRecursiveDescentRecognizer {
     }
 
     /**
-     * Throws an exception to reject.
+     * Throws an exception to reject. // NO response == accept????
      */
     public void recognize() {
         program();
@@ -52,15 +52,40 @@ public final class WRecursiveDescentRecognizer {
      * Will this condition be met if the waveform() method does nothing?
      */
     public void program() {
-        waveform();
+        waveform(); // Waveform+ : one or more waveforms cant be null
         while (!lexer.inspectEOF()) {
             waveform();
         }
         lexer.consumeEOF();
     }
 
+    private void Bits(){
+        // checks for bits until semicolon
+        
+    }
     public void waveform() {
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+        // must start with keyword 
+        if(lexer.inspectID()){
+            lexer.consumeID();
+            // needs drip seperator
+            if(lexer.inspect(":")){
+                lexer.consume(":");
+
+                // consumes all bits
+                while(!lexer.inspect(";")){
+                    if(lexer.inspect("0")){
+                        lexer.consume("0");
+                    } else if(lexer.inspect("1")){
+                        lexer.consume("1");
+                    }
+                    else throw new ece351.util.Todo351Exception();
+                }
+                // consume end of waveform
+                lexer.consume(";");
+            }else throw new ece351.util.Todo351Exception();
+        } 
+        else { // rejection.
+            throw new ece351.util.Todo351Exception();
+        }
     }
 }
