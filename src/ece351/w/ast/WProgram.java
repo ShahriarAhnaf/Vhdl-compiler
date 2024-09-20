@@ -125,8 +125,17 @@ public final class WProgram implements Examinable {
 	
 	@Override
 	public String toString() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		// TODO: short code snippet
+		// throw new ece351.util.Todo351Exception();
+		String le_big_string = "";
+		for(Waveform w : waveforms){
+			le_big_string = le_big_string + w.name + " :";
+			for(String s : w.bits) {
+				le_big_string = le_big_string + " " + s;
+			}
+			le_big_string = le_big_string + ";\n";
+		}
+		return le_big_string;
 	}
 
 	/**

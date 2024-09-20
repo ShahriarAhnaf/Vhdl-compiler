@@ -110,10 +110,11 @@ public final class Waveform implements Examinable {
 	}
 	
 	@Override
-	public String toString() {
+	public String toString(){
 		// STUB: return "TODO"; // TODO: Waveform.toString()
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		String le_print;
+		le_print = this.name + " :" + this.bits + ";";
+		return le_print;
 	}
 
 	/**

@@ -26,6 +26,8 @@
 
 package ece351.w.rdescent;
 
+import java.util.LinkedList;
+
 import org.parboiled.common.ImmutableList;
 
 import ece351.util.Lexer;
@@ -34,6 +36,7 @@ import ece351.w.ast.Waveform;
 
 public final class WRecursiveDescentParser {
     private final Lexer lexer;
+    // member WPgraom.... .
 
     public WRecursiveDescentParser(final Lexer lexer) {
         this.lexer = lexer;
@@ -44,9 +47,40 @@ public final class WRecursiveDescentParser {
         return p.parse();
     }
 
+    public Waveform waveform() {
+        Waveform wave = new Waveform();
+        // must start with keyword 
+        if(lexer.inspectID()){
+            wave = wave.rename(lexer.consumeID());
+            // needs drip seperator
+            if(lexer.inspect(":")){
+                lexer.consume(":");
+
+                // consumes all bits
+                while(!lexer.inspect(";")){
+                    if(lexer.inspect("0")){
+                        wave = wave.append(lexer.consume("0"));
+                    } else if(lexer.inspect("1")){
+                        wave = wave.append(lexer.consume("1"));
+                    }
+                    else throw new IllegalArgumentException("invalid bit character found during parsing");
+                }
+                // consume end of waveform
+                lexer.consume(";");
+            }else throw new IllegalArgumentException("invalid after name ");
+        } 
+        else { // rejection.
+            throw new IllegalArgumentException("invalid pin name or start of waveform");
+        }
+        return wave;
+    }    
     public WProgram parse() {
-    	// STUB: return null;
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+        WProgram wavyP = new WProgram();
+        wavyP = wavyP.append(waveform()); // Waveform+ : one or more waveforms cant be null
+        while (!lexer.inspectEOF()) {
+            wavyP = wavyP.append(waveform());
+        }
+        lexer.consumeEOF();
+        return wavyP;
     }
 }

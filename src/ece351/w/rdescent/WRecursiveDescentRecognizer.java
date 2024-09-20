@@ -30,7 +30,6 @@ import ece351.util.Lexer;
 
 public final class WRecursiveDescentRecognizer {
     private final Lexer lexer;
-    private int stage = 0;
     public WRecursiveDescentRecognizer(final Lexer lexer) {
         this.lexer = lexer;
     }
@@ -59,10 +58,6 @@ public final class WRecursiveDescentRecognizer {
         lexer.consumeEOF();
     }
 
-    private void Bits(){
-        // checks for bits until semicolon
-        
-    }
     public void waveform() {
         // must start with keyword 
         if(lexer.inspectID()){
@@ -70,22 +65,21 @@ public final class WRecursiveDescentRecognizer {
             // needs drip seperator
             if(lexer.inspect(":")){
                 lexer.consume(":");
-
                 // consumes all bits
                 while(!lexer.inspect(";")){
                     if(lexer.inspect("0")){
-                        lexer.consume("0");
+                       lexer.consume("0");
                     } else if(lexer.inspect("1")){
                         lexer.consume("1");
                     }
-                    else throw new ece351.util.Todo351Exception();
+                    else throw new IllegalArgumentException("invalid bit character found during parsing");
                 }
                 // consume end of waveform
                 lexer.consume(";");
-            }else throw new ece351.util.Todo351Exception();
+            }else throw new IllegalArgumentException("invalid after name ");
         } 
         else { // rejection.
-            throw new ece351.util.Todo351Exception();
+            throw new IllegalArgumentException("invalid pin name or start of waveform");
         }
     }
 }
