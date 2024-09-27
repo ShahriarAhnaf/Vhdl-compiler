@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+// import org.apache.tools.ant.taskdefs.Transform;
 import org.parboiled.common.ImmutableList;
 
 import ece351.w.ast.WProgram;
@@ -61,10 +62,15 @@ public final class TransformSVG2W {
 	public static final WProgram transform(final PinsLines pinslines) {
 		final List<Line> lines = new ArrayList<Line>(pinslines.segments);
 		final List<Pin> pins = new ArrayList<Pin>(pinslines.pins);
-
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
-
+		ImmutableList<Waveform> waveforms = ImmutableList.of(); // empty
+		Collections.sort(lines, TransformSVG2W.COMPARE_Y_X); // should make the search for line range faster
+		Collections.sort(pins, TransformSVG2W.COMPARE_Y_PIN); // sort pins by y value
+		// assume my own svg generation
+		// linear search
+		for(Pin p:pins){ // should be least to greatest sorted
+			// make a waveform for this pin
+			waveforms.add(transformLinesToWaveform(lines, p));
+		} //  O(lp) algorithm, could have been sped up to O(l + p) by simple interating over lines once with an iterator since its sorted
 		return new WProgram(waveforms);
 	}
 
@@ -83,11 +89,26 @@ throw new ece351.util.Todo351Exception();
 	 * @see #transform(PinsLines)
 	 * @see Pin#id
 	 */
-	private static Waveform transformLinesToWaveform(final List<Line> lines, final List<Pin> pins) {
+	private static Waveform transformLinesToWaveform(final List<Line> lines, final Pin pin) {
 		if(lines.isEmpty()) return null;
-
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		// TODO: longer code snippet
+		// throw new ece351.util.Todo351Exception();
+		Waveform wave = new Waveform(pin.id);
+		int y_mid = pin.y;
+		List<Line> le_lines = new ArrayList<>();
+		for( Line l : lines){
+			if(Math.abs(l.y1 - y_mid) < 50 && (l.x1 != l.x2)){ // get range and ignore vertical lines
+				le_lines.add(l);
+				// check what line it is
+				if(l.y1 > y_mid) { // line below
+					wave = wave.append("0");
+				}
+				else if (l.y1 < y_mid){
+					wave = wave.append("1");
+				}
+			}
+		}
+		return wave;
 	}
 
 	/**
@@ -102,6 +123,15 @@ throw new ece351.util.Todo351Exception();
 			if(l1.x1 > l2.x1) return 1;
 			if(l1.x2 < l2.x2) return -1;
 			if(l1.x2 > l2.x2) return 1;
+			return 0;
+		}
+	};
+
+	public final static Comparator<Pin> COMPARE_Y_PIN = new Comparator<Pin>() {
+		@Override
+		public int compare(final Pin p1, final Pin p2) {
+			if(p1.y < p2.y) return -1;
+			if(p1.y > p2.y) return 1;
 			return 0;
 		}
 	};

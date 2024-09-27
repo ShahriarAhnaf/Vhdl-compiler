@@ -40,8 +40,7 @@ public final class TestObjectContract extends TestObjectContractBase {
 		// this is an anonymous inner class that is a subclass of Object
 		return new Object() {
 			public boolean equals(Object ob) { 
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+				return false;
 			}
 		};
 	}
@@ -54,8 +53,7 @@ throw new ece351.util.Todo351Exception();
 		// this is an anonymous inner class that is a subclass of Object
 		return new Object() {
 			public boolean equals(Object ob) { 
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+				return true;
 			}
 		};
 	}
@@ -69,8 +67,8 @@ throw new ece351.util.Todo351Exception();
 		return new Object() {
 			private boolean flag = true;
 			public boolean equals(Object ob) { 
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+				flag = !flag;
+				return flag;
 			}
 		};
 	}

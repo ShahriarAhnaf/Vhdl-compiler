@@ -73,23 +73,29 @@ public final class TransformW2SVG {
 
 			// loop on bits
 			for (final String bit : w.bits) {
-				// set the y position according to the value of the bit
 				// draw the vertical line
+				if(bit == "1"){
+					 out.println(Line.toSVG(x, y_prev, x, y_mid-y_off)); // vertical line u
+					 y_prev = y_mid-y_off;
+				}
+				else if(bit == "0") {
+					out.println(Line.toSVG(x, y_prev, x, y_mid+y_off));
+					y_prev = y_mid+y_off;
+				}
 				// draw the horizontal line
+				out.println(Line.toSVG(x, y_prev, x+WIDTH, y_prev));
+
 				// get ready for the next bit
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+				x = x+WIDTH;
 			}
 			
 			// advance the y position for the next pin
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+			y_mid = y_mid + 150;
 
 		}
 
 		// footer
 		out.println("</svg>");
-		
 	}
 
 	/**
