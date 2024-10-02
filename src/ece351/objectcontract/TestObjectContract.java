@@ -79,8 +79,9 @@ public final class TestObjectContract extends TestObjectContractBase {
 	@Override
 	SymmetryBreaker[] constructSymmetryBreakers() {
 		final SymmetryBreaker[] result = new SymmetryBreaker[2];
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		result[0] = new SymmetryBreaker(1,null);
+		result[1] = new SymmetryBreaker(1,result[0]); // should work one way??
+		return result;
 	}
 
 	
@@ -91,8 +92,11 @@ throw new ece351.util.Todo351Exception();
 	TransitivityBreaker[] constructTransitivityBreakers() {
 		final double epsilon6 = TestObjectContractBase.TransitivityBreaker.epsilon * 0.6d;
 		final TransitivityBreaker[] result = new TransitivityBreaker[3];
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		result[0] = new TransitivityBreaker(epsilon6);
+		result[1] = new TransitivityBreaker(epsilon6*2);
+		result[2] = new TransitivityBreaker(epsilon6*3);
+		
+		return result;
 	}
 
 	/**
@@ -103,9 +107,12 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	Object[] constructHashcodeConsistencyViolators() {
+		// this should break because toggler objects are the same, but their states will different when method is called.
 		final Object[] result = new Object[2];
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		result[0] = constructAlwaysTrue();
+		result[1] = constructAlwaysTrue();
+		// these are equal but not the same object.
+		return result;
 	}
 
 	/**
@@ -114,7 +121,7 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkNotEqualsNull(final Object obj) {
-		return obj.equals(null);
+		return !obj.equals(null);
 	}
 
 	/**
@@ -135,7 +142,7 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkEqualsIsSymmetric(final Object o1, final Object o2) {
-		return o1.equals(o2) && o2.equals(o1);
+		return (o1.equals(o2) && o2.equals(o1)) || (!o1.equals(o2) && !o2.equals(o1));
 	}
 
 	/**
@@ -161,6 +168,6 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkHashcodeIsConsistent(final Object o1, final Object o2) {
-			return o1.hashCode() == o2.hashCode();
+			return !o1.equals(o2) || (o1.hashCode() == o2.hashCode()); // CNF form of implication
 	}
 }
