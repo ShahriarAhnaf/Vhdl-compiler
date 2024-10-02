@@ -114,8 +114,7 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkNotEqualsNull(final Object obj) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return obj.equals(null);
 	}
 
 	/**
@@ -124,8 +123,7 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkEqualsIsReflexive(final Object obj) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return obj.equals(obj);
 	}
 
 	/**
@@ -137,8 +135,7 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkEqualsIsSymmetric(final Object o1, final Object o2) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return o1.equals(o2) && o2.equals(o1);
 	}
 
 	/**
@@ -150,8 +147,7 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkEqualsIsTransitive(final Object o1, final Object o2, final Object o3) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return o1.equals(o3) && o1.equals(o2) && o2.equals(o3);
 	}
 
 	/**
@@ -165,7 +161,6 @@ throw new ece351.util.Todo351Exception();
 	 */
 	@Override
 	boolean checkHashcodeIsConsistent(final Object o1, final Object o2) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+			return o1.hashCode() == o2.hashCode();
 	}
 }

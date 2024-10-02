@@ -90,10 +90,9 @@ public final class TransformW2SVG {
 			}
 			
 			// advance the y position for the next pin
-			y_mid = y_mid + 150;
-
+			y_mid = y_mid + 200;
+			y_prev = y_mid;
 		}
-
 		// footer
 		out.println("</svg>");
 	}

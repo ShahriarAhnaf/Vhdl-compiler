@@ -63,14 +63,21 @@ public final class TransformSVG2W {
 		final List<Line> lines = new ArrayList<Line>(pinslines.segments);
 		final List<Pin> pins = new ArrayList<Pin>(pinslines.pins);
 		ImmutableList<Waveform> waveforms = ImmutableList.of(); // empty
-		Collections.sort(lines, TransformSVG2W.COMPARE_Y_X); // should make the search for line range faster
-		Collections.sort(pins, TransformSVG2W.COMPARE_Y_PIN); // sort pins by y value
+		Collections.sort(lines, COMPARE_Y_X); // should make the search for line range faster
+		Collections.sort(pins, COMPARE_Y_PIN); // sort pins by y value
 		// assume my own svg generation
 		// linear search
 		for(Pin p:pins){ // should be least to greatest sorted
 			// make a waveform for this pin
-			waveforms.add(transformLinesToWaveform(lines, p));
-		} //  O(lp) algorithm, could have been sped up to O(l + p) by simple interating over lines once with an iterator since its sorted
+			int y_mid = p.y;
+			List<Line> le_lines = new ArrayList<>(); // lines per pin
+			for( Line l : lines){
+				if((Math.abs(l.y1 - y_mid) <= 50 ) && (l.x1 != l.x2) && (l.y1 == l.y2)){ // ignore vertical lines
+					le_lines.add(l); // line that is within range
+				}
+			}
+			waveforms = waveforms.append(transformLinesToWaveform(le_lines, p));
+			} //  O(lp) algorithm, could have been sped up to O(l + p) by simple interating over lines once with an iterator since its sorted
 		return new WProgram(waveforms);
 	}
 
@@ -91,22 +98,17 @@ public final class TransformSVG2W {
 	 */
 	private static Waveform transformLinesToWaveform(final List<Line> lines, final Pin pin) {
 		if(lines.isEmpty()) return null;
-		// TODO: longer code snippet
-		// throw new ece351.util.Todo351Exception();
 		Waveform wave = new Waveform(pin.id);
 		int y_mid = pin.y;
-		List<Line> le_lines = new ArrayList<>();
+		Collections.sort(lines, COMPARE_X); // sort from left to right
 		for( Line l : lines){
-			if(Math.abs(l.y1 - y_mid) < 50 && (l.x1 != l.x2)){ // get range and ignore vertical lines
-				le_lines.add(l);
 				// check what line it is
 				if(l.y1 > y_mid) { // line below
 					wave = wave.append("0");
 				}
-				else if (l.y1 < y_mid){
+				else if (l.y1 < y_mid){ // line above
 					wave = wave.append("1");
 				}
-			}
 		}
 		return wave;
 	}

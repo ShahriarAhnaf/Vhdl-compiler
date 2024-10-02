@@ -30,11 +30,16 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Collection;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import java.nio.file.Files;
+
 
 import ece351.util.BaseTest351;
 import ece351.util.CommandLine;
@@ -86,12 +91,27 @@ public final class TestW2SVG2W extends BaseTest351 {
 		final WProgram staffwp = TransformSVG2W.transform(staffpinslines);
 		final WProgram studentwp = TransformSVG2W.transform(studentpinslines);
 
+		System.out.println("student W output : \n" + studentwp.toString());
+		System.out.println("staff W output : \n" + staffwp.toString());
 		// read original W file
 		final String originalWPath = studentPath.replace("student.out" + File.separator, "").replace(".svg", ".wave");
 		final CommandLine c = new CommandLine(originalWPath);
 		final String originalWtxt = c.readInputSpec();
 		final WProgram originalWP = WRecursiveDescentParser.parse(originalWtxt);
 
+		System.out.println("OG w file: \n" + originalWP.toString());
+		
+		// Save studentwp to a file
+		final String outputFilePath = studentPath.replace(".svg", "_studentwp.wave");
+		System.out.println("Saving student WProgram to " + outputFilePath);
+		
+		// Assuming WProgram has a proper toString() method or equivalent
+		final String studentWProgramText = studentwp.toString();  // Adjust this based on how you want to serialize it
+		
+		// Write the string to the file
+		Files.write(Paths.get(outputFilePath), studentWProgramText.getBytes(StandardCharsets.UTF_8));
+		
+    System.out.println("studentwp saved successfully.");
 		// Overall sanity check
 		ExaminableProperties.checkAllUnary(originalWP);
 		ExaminableProperties.checkAllUnary(studentwp);
