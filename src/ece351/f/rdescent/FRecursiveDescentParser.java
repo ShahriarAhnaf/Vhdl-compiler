@@ -91,47 +91,52 @@ public final class FRecursiveDescentParser implements Constants {
     
     Expr expr() { 
         // call term on every or seperated object
-        do{
+        Expr e = term();
+        while(lexer.inspect("or")){
             if(lexer.inspect("or")){
                 lexer.consume("or");
             }
-            term(); // not an OR, must be a term
-        } while(lexer.inspect("or")); // find all terms 
+            e = new OrExpr(e, term());
+        } // find all terms 
+        return e;
      } 
     Expr term() { 
-        do{
+        Expr e = factor();
+        while(lexer.inspect("and")){
             if(lexer.inspect("and")){
                 lexer.consume("and");
             }
-            factor(); // not an and, must be a factor itself
-        } while(lexer.inspect("and")); // find all terms 
+            e = new AndExpr(e, factor()); // not an and, must be a factor itself
+        }
+        return e;
     }
 	Expr factor() { 
             if(lexer.inspect("not")){
                 lexer.consume("not");
-                factor(); // 
+                return new NotExpr(factor()); // 
             }
             else if (lexer.inspect("(")){
                 lexer.consume("(");
-                expr(); 
+                Expr e = expr(); 
                 if(lexer.inspect(")")){
                     lexer.consume(")");
+                    return e;
                 }
                 else { // fails if braket is not closed.
                     throw new IllegalArgumentException("Close parenthesis not found after expression");
                 }
             }
             else if (peekConstant()){
-                constant();
+                return constant();
             }
             else {
-                var();
+                return var();
             }
     }
 	VarExpr var() { 
         // checks if its an id 
         if(lexer.inspectID()){
-            lexer.consumeID(); 
+            return new VarExpr(lexer.consumeID()); 
         }
         else {
             throw new IllegalArgumentException("variable is not an ID as expected, token = " + lexer.debugState());
@@ -139,17 +144,18 @@ public final class FRecursiveDescentParser implements Constants {
      }
 	ConstantExpr constant() { 
         lexer.consume("'");
+        boolean flag = true;
         if(lexer.inspect("1")){
             lexer.consume("1");
         }
         else if (lexer.inspect("0")){
             lexer.consume("0");
+            flag = false;
         }
         else{
             throw new IllegalArgumentException("constant is not a 1 or 0 as expected");
         }
 
-        
         if(peekConstant()){ 
             // check ending
             lexer.consume("'");
@@ -157,6 +163,7 @@ public final class FRecursiveDescentParser implements Constants {
         else {
             throw new IllegalArgumentException("constant is not enclosed in '.");
         }
+        return ConstantExpr.make(flag);
     } 
 
     // helper functions

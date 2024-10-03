@@ -158,7 +158,7 @@ public final class FProgram implements Examinable {
 		// compare field values using Examiner.unorderedExamination()
 		// no significant differences found, return true
 		// basically can be out of order
-		return Examiner.unorderedEquals(that.formulas, formulas);
+		return Examiner.unorderedExamination(Examiner.Isomorphic, that.formulas, formulas);
 	}
 
 	/**
