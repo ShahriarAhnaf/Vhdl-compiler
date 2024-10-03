@@ -127,8 +127,13 @@ public final class FProgram implements Examinable {
     public String toString() {
 		if (formulas == null || formulas.isEmpty()) return "";
 		final String sep = System.getProperty("line.separator");
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		String result = "";
+		for(AssignmentStatement f : formulas){
+			result = result + f.toString() + sep;
+		}
+
+		System.out.println("Pretty Print: " + sep + result);
+		return result;
     }
     
 	@Override
@@ -140,8 +145,7 @@ throw new ece351.util.Todo351Exception();
 		
 		// compare field values using Examiner.orderedExamination()
 		// no significant differences found, return true
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return Examiner.orderedExamination(Examiner.Equals, formulas, that.formulas);
 	}
 	
 	@Override
@@ -153,8 +157,8 @@ throw new ece351.util.Todo351Exception();
 		
 		// compare field values using Examiner.unorderedExamination()
 		// no significant differences found, return true
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		// basically can be out of order
+		return Examiner.unorderedEquals(that.formulas, formulas);
 	}
 
 	/**

@@ -63,8 +63,7 @@ public final class ConstantExpr extends Expr {
 	}
 
 	public String toString() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return b ? "'1'" : "'0'";
 	}
 
 	public Expr accept(final ExprVisitor v){
@@ -88,14 +87,12 @@ throw new ece351.util.Todo351Exception();
 		if (!obj.getClass().equals(this.getClass())) return false;
 		final ConstantExpr that = (ConstantExpr) obj;
 
-		// compare field values
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return this.b == that.b;
 	}
 
 	@Override
 	public boolean isomorphic(final Examinable obj) {
-		return equals(obj);
+		return equals(obj); // same as equality since unary expr
 	}
 
 }

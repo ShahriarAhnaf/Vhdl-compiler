@@ -67,11 +67,73 @@ public final class FRecursiveDescentRecognizer implements Constants {
         lexer.consume(";");
     }
     
-    void expr() { throw new ece351.util.Todo351Exception(); } // TODO // TODO: replace this stub
-    void term() { throw new ece351.util.Todo351Exception(); } // TODO // TODO: replace this stub
-	void factor() { throw new ece351.util.Todo351Exception(); } // TODO // TODO: replace this stub
-	void var() { throw new ece351.util.Todo351Exception(); } // TODO // TODO: replace this stub
-	void constant() { throw new ece351.util.Todo351Exception(); } // TODO // TODO: replace this stub
+    void expr() { 
+        // call term on every or seperated object
+        do{
+            if(lexer.inspect("or")){
+                lexer.consume("or");
+            }
+            term(); // not an OR, must be a term
+        } while(lexer.inspect("or")); // find all terms 
+     } 
+    void term() { 
+        do{
+            if(lexer.inspect("and")){
+                lexer.consume("and");
+            }
+            factor(); // not an and, must be a factor itself
+        } while(lexer.inspect("and")); // find all terms 
+    }
+	void factor() { 
+            if(lexer.inspect("not")){
+                lexer.consume("not");
+                factor(); // 
+            }
+            else if (lexer.inspect("(")){
+                lexer.consume("(");
+                expr(); 
+                if(lexer.inspect(")")){
+                    lexer.consume(")");
+                }
+                else { // fails if braket is not closed.
+                    throw new IllegalArgumentException("Close parenthesis not found after expression");
+                }
+            }
+            else if (peekConstant()){
+                constant();
+            }
+            else {
+                var();
+            }
+    }
+	void var() { 
+        // checks if its an id 
+        if(lexer.inspectID()){
+            lexer.consumeID(); 
+        }
+        else {
+            throw new IllegalArgumentException("variable is not an ID as expected, token = " + lexer.debugState());
+        }
+     }
+	void constant() { 
+        lexer.consume("'");
+        if(lexer.inspect("1")){
+            lexer.consume("1");
+        }
+        else if (lexer.inspect("0")){
+            lexer.consume("0");
+        }
+        else{
+            throw new IllegalArgumentException("constant is not a 1 or 0 as expected");
+        }
+        if(peekConstant()){ 
+            // check ending
+            lexer.consume("'");
+        }
+        else {
+            throw new IllegalArgumentException("constant is not enclosed in '.");
+        }
+    } 
 
 
     // helper functions
