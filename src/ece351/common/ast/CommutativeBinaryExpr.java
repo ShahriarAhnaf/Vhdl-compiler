@@ -53,9 +53,9 @@ public abstract class CommutativeBinaryExpr extends BinaryExpr {
 		
 		// compare field values, both ways, using e.examine(x,y)
 		// compare field values
-		if (!e.examine(left, cbe.left) && !e.examine(left, cbe.right)) return false;
-		if (!e.examine(right, cbe.left) && !e.examine(right, cbe.right)) return false;
-		return true; // if they all pass
+		if (e.examine(left, cbe.right) && e.examine(right, cbe.left)) return true;
+		if (e.examine(left, cbe.left) && e.examine(right, cbe.right)) return true;
+		return false; // if they fail
 	}
 
 

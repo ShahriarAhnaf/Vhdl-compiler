@@ -91,8 +91,7 @@ public final class AssignmentStatement extends Statement implements Examinable {
 		if (!obj.getClass().equals(this.getClass())) return false;
 		final AssignmentStatement that = (AssignmentStatement) obj;
 		
-		if(that.outputVar != outputVar) return false;
-		return that.expr.isomorphic(expr);
+		return expr.isomorphic(that.expr);
 	}
 
 	/**
