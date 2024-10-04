@@ -69,7 +69,7 @@ public final class VarExpr extends Expr {
 		if (!getClass().equals(obj.getClass())) return false;
 		final VarExpr that = (VarExpr) obj;
 		// compare field values
-		return this.identifier.equals(that.identifier);
+		return this.identifier.equals(that.identifier); // I DID A POINTER COMPARISION NOOOOOOOOOOOooOOOOOoooOOOOoooOOO
 	}
 
 	@Override

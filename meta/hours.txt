@@ -8,7 +8,7 @@
 lab0 3
 lab1 8
 lab2 7
-lab3 3
+lab3 8
 lab4 0
 lab5 0
 lab6 0

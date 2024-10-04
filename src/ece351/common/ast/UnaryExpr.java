@@ -55,8 +55,7 @@ public abstract class UnaryExpr extends Expr {
 		if (!obj.getClass().equals(this.getClass())) return false;
 		final UnaryExpr that = (UnaryExpr) obj;
 		// compare field values using e.examine(x,y)
-		if(!e.examine( expr, that.expr)) return false;
-
+		if(!e.examine(this.expr, that.expr)) return false;
 		// no difference
 		return true;
     }
