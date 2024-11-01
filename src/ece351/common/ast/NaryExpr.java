@@ -184,6 +184,7 @@ public abstract class NaryExpr extends Expr {
 		// if they are not the same elements in the same order return false
 		// no significant differences found, return true
 		for (int j = 0; j < this.children.size(); j++) {
+			if(j > that.children.size()) return false;
 			if(!this.children.get(j).equals(that.children.get(j))){
 				return false;
 			}
@@ -328,7 +329,7 @@ public abstract class NaryExpr extends Expr {
 				// all duplicates SHOULD be next to each other
 				// otherwise do n^2 search
 			}else{
-				i++; // only increase i if all duplicates of the same is gone
+				i = j; // only increase i if all duplicates of the same is gone
 				unique_list = unique_list.append(this.children.get(i));	
 			}
 		}
@@ -369,29 +370,35 @@ public abstract class NaryExpr extends Expr {
 		// check if there are any conjunctions that are supersets of others
 		// e.g., ( a . b . c ) + ( a . b ) = a . b
 		
-		// look for any match of AND of Nary expr in GRANDCHILDREN ?ca
-		// NaryExpr opps = this.filter(this.getThatClass(), true);
-		// NaryExpr no_opps = this.filter(this.getThatClass(), false);
-		// ImmutableList<Expr> new_list = ImmutableList.of();
-		// for(Expr e: no_opps.children){
-		// 	new_list = new_list.append(e);
-		// 	for(Expr g : opps.children){
-		// 		NaryExpr child = (NaryExpr) g;
-		// 		boolean found = false;
-		// 		for(Expr match: child.children) { // check grandkids
-		// 			if(e.equals(match)){
-		// 				// new_list.append(e);
-		// 				found = true;
-		// 				break; // this should 
-		// 			}
-		// 		}
-		// 		// if the loop was not broken add g into the list since 
-		// 		// it does not have any matches
-		// 		if(!found) new_list = new_list.append(g);
-		// 	}
-		// }
-		// return newNaryExpr(new_list);  
-		return this;
+		// look for any matching Nary expr in GRANDCHILDREN 
+		NaryExpr opps = this.filter(this.getThatClass(), true);
+		ImmutableList<Expr> to_yeet = ImmutableList.of();
+		for(int n = 0; n < opps.children.size(); n++){
+				// we know is an NaryExpr
+				NaryExpr e = (NaryExpr) opps.children.get(n);
+				if(e.children.size() < 2) continue; // skip the expression
+
+				ImmutableList<Expr> subsets = ImmutableList.of();
+				subsets = subsets.append(e.children.get(0)); // get first 
+				// search for each subset in all other expressions
+				for(int i=1; i < e.children.size(); i++){
+					subsets = subsets.append(e.children.get(i));
+					for(int m = n+1; m < opps.children.size(); m++){
+						NaryExpr match = (NaryExpr) opps.children.get(m);
+						boolean found = true;
+						// for each expression check if I can just match subset 
+						for(int j =0; j<=i; j++){
+							if(!match.children.get(j).equals(subsets.get(j))){
+								found = false;
+								break;
+							}
+						}
+						if(found) to_yeet = to_yeet.append(match);
+					}
+				}
+		}
+		NaryExpr result = this.removeAll(to_yeet, Examiner.Equals);
+		return result;  
     	// do not assert repOk(): this operation might leave the AST in an illegal state (with only one child)
 	}
 
