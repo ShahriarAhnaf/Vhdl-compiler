@@ -46,8 +46,7 @@ public final class OrExpr extends CommutativeBinaryExpr{
 	@Override
 	public Expr simplifyOnce() {
 		// return a new NaryOrExpr with the same children as this OrExpr
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return new NaryOrExpr(this.left, this.right);
 	}
 	@Override
 	public String operator() {

@@ -183,8 +183,12 @@ public abstract class NaryExpr extends Expr {
 		// supposed to be sorted, but might not be (because repOk might not pass)
 		// if they are not the same elements in the same order return false
 		// no significant differences found, return true
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		for (int j = 0; j < this.children.size(); j++) {
+			if(!this.children.get(j).equals(that.children.get(j))){
+				return false;
+			}
+		}
+		return true;
 	}
 
 	
@@ -200,7 +204,7 @@ throw new ece351.util.Todo351Exception();
 				removeDuplicates().
 				simpleAbsorption().
 				subsetAbsorption().
-				singletonify();
+				singletonify(); // returns an Expr
 		assert result.repOk();
 		return result;
 	}
@@ -212,7 +216,12 @@ throw new ece351.util.Todo351Exception();
 		// note: we do not assert repOk() here because the rep might not be ok
 		// the result might contain duplicate children, and the children
 		// might be out of order
-		return this; // TODO: replace this stub
+
+		// turn all direct expressions under it into N-aray
+		for(Expr e : this.children){
+			e.simplify(); // if e = Nary expr it becomes recursive.
+		}
+		return this;
 	}
 
 	
@@ -221,8 +230,11 @@ throw new ece351.util.Todo351Exception();
 			// if no children to merge, then return this (i.e., no change)
 			// use filter to get the other children, which will be kept in the result unchanged
 			// merge in the grandchildren
-			// assert result.repOk():  this operation should always leave the AST in a legal state
-		return this; // TODO: replace this stub
+			NaryExpr result = newNaryExpr(children);
+			final NaryExpr bruh = this.filter(this.getClass(), true);
+			result.appendAll(bruh.children); // move it up
+			assert result.repOk(); // this operation should always leave the AST in a legal state
+		return result; 
 	}
 
 
@@ -232,7 +244,18 @@ throw new ece351.util.Todo351Exception();
     		// all children were identity elements, so now our working list is empty
     		// return a new list with a single identity element
     		// normal return
-		return this; // TODO: replace this stub
+		NaryExpr result = this.filter(ConstantExpr.class, true);
+		NaryExpr no_const = this.filter(ConstantExpr.class, false);
+		for(Expr e: result.children){
+			if(!e.equals(this.getIdentityElement())){
+				no_const = no_const.append(e); // add the non identity expressions
+			}
+		}
+		if(no_const.children.size() < 1){
+			no_const = no_const.append(this.getIdentityElement()); // base case with all identity elements
+		}
+
+		return no_const; 
     	// do not assert repOk(): this fold might leave the AST in an illegal state (with only one child)
     }
 
@@ -241,7 +264,16 @@ throw new ece351.util.Todo351Exception();
 			// absorbing element is present: return it
 			// not so fast! what is the return type of this method? why does it have to be that way?
 			// no absorbing element present, do nothing
-		return this; // TODO: replace this stub
+		// NaryExpr result = this.filter(ConstantExpr.class, true);
+		// NaryExpr no_const = this.filter(ConstantExpr.class, false);
+		for(Expr e: this.children){
+			if(e.equals(this.getAbsorbingElement())){
+				ImmutableList<Expr> l = ImmutableList.of();
+				l = l.append(this.getAbsorbingElement());
+				return newNaryExpr(l); // instant return 
+			}
+		}
+		return this; 
     	// do not assert repOk(): this fold might leave the AST in an illegal state (with only one child)
 	}
 
@@ -254,30 +286,102 @@ throw new ece351.util.Todo351Exception();
 				// found matching negation and its complement
 				// return absorbing element
 		// no complements to fold
-		return this; // TODO: replace this stub
+
+		NaryExpr Complements = this.filter(NotExpr.class, true);
+		ImmutableList<Expr> new_list = ImmutableList.of();
+		for(Expr e: this.children){
+			boolean found = false;
+			for(Expr not_e : Complements.children){
+				NotExpr n = (NotExpr) not_e;
+				if(e.equals(n.expr)){
+					found = true;
+					break; // 
+				}
+			}
+			if(found) new_list = new_list.append(this.getAbsorbingElement());
+			else new_list = new_list.append(e);
+		}
+		return newNaryExpr(new_list);
     	// do not assert repOk(): this fold might leave the AST in an illegal state (with only one child)
 	}
 
 	private NaryExpr removeDuplicates() {
 		// remove duplicate children: x.x=x and x+x=x
 		// since children are sorted this is fairly easy
-			// no changes
-			// removed some duplicates
-		return this; // TODO: replace this stub
+		ImmutableList<Expr> unique_list= ImmutableList.of();
+		if(this.children.size() < 2) return this; // null case
+		int i = 0;
+		// initial condition
+		unique_list = unique_list.append(this.children.get(i));
+		for (int j = 1; j < this.children.size(); j++) {
+			if(this.children.get(j).equals(this.children.get(i))){
+				// if they equal each other keep going until it doesnt
+				// works because Nary SHOULD be sorted?
+				// all duplicates SHOULD be next to each other
+				// otherwise do n^2 search
+			}else{
+				i++; // only increase i if all duplicates of the same is gone
+				unique_list = unique_list.append(this.children.get(i));	
+			}
+		}
+		return newNaryExpr(unique_list); 
     	// do not assert repOk(): this fold might leave the AST in an illegal state (with only one child)
 	}
 
 	private NaryExpr simpleAbsorption() {
 		// (x.y) + x ... = x ...
 		// check if there are any conjunctions that can be removed
-		return this; // TODO: replace this stub
+		// look for any match of AND of Nary expr in GRANDCHILDREN in children?
+		NaryExpr opps = this.filter(this.getThatClass(), true);
+		NaryExpr no_opps = this.filter(this.getThatClass(), false);
+		ImmutableList<Expr> new_list = ImmutableList.of();
+		for(Expr e: no_opps.children){
+			new_list = new_list.append(e);
+			for(Expr g : opps.children){
+				NaryExpr child = (NaryExpr) g;
+				boolean found = false;
+				for(Expr match: child.children) { // check grandkids
+					if(e.equals(match)){
+						// new_list.append(e);
+						found = true;
+						break; // this should 
+					}
+				}
+				// if the loop was not broken add g into the list since 
+				// it does not have any matches
+				if(!found) new_list = new_list.append(g);
+			}
+		}
+		return newNaryExpr(new_list); 
     	// do not assert repOk(): this operation might leave the AST in an illegal state (with only one child)
 	}
 
 	private NaryExpr subsetAbsorption() {
 		// check if there are any conjunctions that are supersets of others
 		// e.g., ( a . b . c ) + ( a . b ) = a . b
-		return this; // TODO: replace this stub
+		
+		// look for any match of AND of Nary expr in GRANDCHILDREN ?ca
+		NaryExpr opps = this.filter(this.getThatClass(), true);
+		NaryExpr no_opps = this.filter(this.getThatClass(), false);
+		ImmutableList<Expr> new_list = ImmutableList.of();
+		for(Expr e: no_opps.children){
+			new_list = new_list.append(e);
+			for(Expr g : opps.children){
+				NaryExpr child = (NaryExpr) g;
+				boolean found = false;
+				for(Expr match: child.children) { // check grandkids
+					if(e.equals(match)){
+						// new_list.append(e);
+						found = true;
+						break; // this should 
+					}
+				}
+				// if the loop was not broken add g into the list since 
+				// it does not have any matches
+				if(!found) new_list = new_list.append(g);
+			}
+		}
+		return newNaryExpr(new_list);  
     	// do not assert repOk(): this operation might leave the AST in an illegal state (with only one child)
 	}
 
@@ -287,8 +391,11 @@ throw new ece351.util.Todo351Exception();
 	private Expr singletonify() {
 		// if we have only one child, return it
 		// having only one child is an illegal state for an NaryExpr
-			// multiple children; nothing to do; return self
-		return this; // TODO: replace this stub
+		// multiple children; nothing to do; return self
+		if(children.size() == 1){
+			return children.getFirst();
+		}
+		return this;
 	}
 
 	/**

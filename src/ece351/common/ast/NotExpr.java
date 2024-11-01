@@ -47,7 +47,19 @@ public final class NotExpr extends UnaryExpr{
     		// !!x = x
     		// nothing changed
     		// something changed
-    	return this; // TODO: replace this stub
+		Expr e_true = ConstantExpr.make(false);
+		Expr e_false = ConstantExpr.make(true);
+		if(expr.equals(e_true)){
+			return e_false; // flip
+		}
+		else if (expr.equals(e_false)) {
+			return e_true; // flip
+		}
+		else if(expr instanceof NotExpr){ // ??? better way
+			NotExpr not = (NotExpr) expr; // get access
+			return not.expr;
+		} 
+    	return this; // return 
     }
 	
     public Expr accept(final ExprVisitor v){
