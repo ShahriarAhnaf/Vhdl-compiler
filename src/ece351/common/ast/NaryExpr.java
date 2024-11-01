@@ -218,10 +218,11 @@ public abstract class NaryExpr extends Expr {
 		// might be out of order
 
 		// turn all direct expressions under it into N-aray
+		ImmutableList<Expr> new_list = ImmutableList.of();
 		for(Expr e : this.children){
-			e.simplify(); // if e = Nary expr it becomes recursive.
+			new_list = new_list.append(e.simplify()); // if e = Nary expr it becomes recursive.
 		}
-		return this;
+		return newNaryExpr(new_list);
 	}
 
 	
@@ -231,8 +232,15 @@ public abstract class NaryExpr extends Expr {
 			// use filter to get the other children, which will be kept in the result unchanged
 			// merge in the grandchildren
 			NaryExpr result = newNaryExpr(children);
-			final NaryExpr bruh = this.filter(this.getClass(), true);
-			result.appendAll(bruh.children); // move it up
+			final NaryExpr duplicate = this.filter(this.getClass(), true);
+			List<Expr> to_yeet = duplicate.children; // everything that matches
+			result = result.removeAll(to_yeet, Examiner.Equals); // move it up
+			for(Expr e: to_yeet){
+				NaryExpr n = (NaryExpr)e;
+				for(Expr grandchild: n.children){
+					result = result.append(grandchild);
+				}
+			}
 			assert result.repOk(); // this operation should always leave the AST in a legal state
 		return result; 
 	}
@@ -273,7 +281,7 @@ public abstract class NaryExpr extends Expr {
 				return newNaryExpr(l); // instant return 
 			}
 		}
-		return this; 
+		return this; // do nothing case
     	// do not assert repOk(): this fold might leave the AST in an illegal state (with only one child)
 	}
 
