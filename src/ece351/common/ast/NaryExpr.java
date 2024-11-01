@@ -220,9 +220,9 @@ public abstract class NaryExpr extends Expr {
 		// turn all direct expressions under it into N-aray
 		ImmutableList<Expr> new_list = ImmutableList.of();
 		for(Expr e : this.children){
-			e.simplify(); // if e = Nary expr it becomes recursive.
+			new_list = new_list.append(e.simplify()); 
 		}
-		return this;
+		return newNaryExpr(new_list);
 	}
 
 	
@@ -360,6 +360,7 @@ public abstract class NaryExpr extends Expr {
 				if(!found) new_list = new_list.append(g);
 			}
 		}
+		if(new_list.size() < 1) return this;
 		return newNaryExpr(new_list); 
     	// do not assert repOk(): this operation might leave the AST in an illegal state (with only one child)
 	}
@@ -369,27 +370,28 @@ public abstract class NaryExpr extends Expr {
 		// e.g., ( a . b . c ) + ( a . b ) = a . b
 		
 		// look for any match of AND of Nary expr in GRANDCHILDREN ?ca
-		NaryExpr opps = this.filter(this.getThatClass(), true);
-		NaryExpr no_opps = this.filter(this.getThatClass(), false);
-		ImmutableList<Expr> new_list = ImmutableList.of();
-		for(Expr e: no_opps.children){
-			new_list = new_list.append(e);
-			for(Expr g : opps.children){
-				NaryExpr child = (NaryExpr) g;
-				boolean found = false;
-				for(Expr match: child.children) { // check grandkids
-					if(e.equals(match)){
-						// new_list.append(e);
-						found = true;
-						break; // this should 
-					}
-				}
-				// if the loop was not broken add g into the list since 
-				// it does not have any matches
-				if(!found) new_list = new_list.append(g);
-			}
-		}
-		return newNaryExpr(new_list);  
+		// NaryExpr opps = this.filter(this.getThatClass(), true);
+		// NaryExpr no_opps = this.filter(this.getThatClass(), false);
+		// ImmutableList<Expr> new_list = ImmutableList.of();
+		// for(Expr e: no_opps.children){
+		// 	new_list = new_list.append(e);
+		// 	for(Expr g : opps.children){
+		// 		NaryExpr child = (NaryExpr) g;
+		// 		boolean found = false;
+		// 		for(Expr match: child.children) { // check grandkids
+		// 			if(e.equals(match)){
+		// 				// new_list.append(e);
+		// 				found = true;
+		// 				break; // this should 
+		// 			}
+		// 		}
+		// 		// if the loop was not broken add g into the list since 
+		// 		// it does not have any matches
+		// 		if(!found) new_list = new_list.append(g);
+		// 	}
+		// }
+		// return newNaryExpr(new_list);  
+		return this;
     	// do not assert repOk(): this operation might leave the AST in an illegal state (with only one child)
 	}
 
