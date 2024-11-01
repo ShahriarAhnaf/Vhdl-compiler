@@ -220,9 +220,9 @@ public abstract class NaryExpr extends Expr {
 		// turn all direct expressions under it into N-aray
 		ImmutableList<Expr> new_list = ImmutableList.of();
 		for(Expr e : this.children){
-			new_list = new_list.append(e.simplify()); // if e = Nary expr it becomes recursive.
+			e.simplify(); // if e = Nary expr it becomes recursive.
 		}
-		return newNaryExpr(new_list);
+		return this;
 	}
 
 	

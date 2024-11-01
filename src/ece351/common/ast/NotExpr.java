@@ -27,6 +27,7 @@
 package ece351.common.ast;
 
 import ece351.common.visitor.ExprVisitor;
+import kodkod.engine.bool.Operator.Nary;
 
 public final class NotExpr extends UnaryExpr{
 	public NotExpr(Expr argument) {
@@ -49,17 +50,19 @@ public final class NotExpr extends UnaryExpr{
     		// something changed
 		Expr e_true = ConstantExpr.make(false);
 		Expr e_false = ConstantExpr.make(true);
-		if(expr.equals(e_true)){
+
+		UnaryExpr result = newUnaryExpr(this.expr.simplify());
+		if(result.expr.equals(e_true)){
 			return e_false; // flip
 		}
-		else if (expr.equals(e_false)) {
+		else if (result.expr.equals(e_false)) {
 			return e_true; // flip
 		}
-		else if(expr instanceof NotExpr){ // ??? better way
+		else if(result.expr.getClass() == NotExpr.class){ // ??? better way
 			NotExpr not = (NotExpr) expr; // get access
 			return not.expr;
 		} 
-    	return this; // return 
+    	return result; // return 
     }
 	
     public Expr accept(final ExprVisitor v){
