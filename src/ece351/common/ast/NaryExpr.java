@@ -37,6 +37,7 @@ import org.parboiled.common.ImmutableList;
 
 import ece351.util.Examinable;
 import ece351.util.Examiner;
+import kodkod.engine.bool.Operator.Nary;
 
 /**
  * An expression with multiple children. Must be commutative.
@@ -183,9 +184,9 @@ public abstract class NaryExpr extends Expr {
 		// supposed to be sorted, but might not be (because repOk might not pass)
 		// if they are not the same elements in the same order return false
 		// no significant differences found, return true
+		if(this.children.size() != that.children.size()) return false;
 		for (int j = 0; j < this.children.size(); j++) {
-			if(j > that.children.size()) return false;
-			if(!this.children.get(j).equals(that.children.get(j))){
+			if(!e.examine(this.children.get(j), that.children.get(j))){
 				return false;
 			}
 		}
@@ -310,6 +311,7 @@ public abstract class NaryExpr extends Expr {
 			if(found) new_list = new_list.append(this.getAbsorbingElement());
 			else new_list = new_list.append(e);
 		}
+		assert(new_list.size()!=0);
 		return newNaryExpr(new_list);
     	// do not assert repOk(): this fold might leave the AST in an illegal state (with only one child)
 	}
@@ -333,6 +335,8 @@ public abstract class NaryExpr extends Expr {
 				unique_list = unique_list.append(this.children.get(i));	
 			}
 		}
+
+		assert(unique_list.size()!=0);
 		return newNaryExpr(unique_list); 
     	// do not assert repOk(): this fold might leave the AST in an illegal state (with only one child)
 	}
@@ -343,14 +347,20 @@ public abstract class NaryExpr extends Expr {
 		// look for any match of AND of Nary expr in GRANDCHILDREN in children?
 		NaryExpr opps = this.filter(this.getThatClass(), true);
 		NaryExpr no_opps = this.filter(this.getThatClass(), false);
-		ImmutableList<Expr> new_list = ImmutableList.of();
-		for(Expr e: no_opps.children){
-			new_list = new_list.append(e);
-			for(Expr g : opps.children){
-				NaryExpr child = (NaryExpr) g;
-				boolean found = false;
-				for(Expr match: child.children) { // check grandkids
-					if(e.equals(match)){
+		ImmutableList<Expr> absorbed_list = ImmutableList.of();
+		ImmutableList<Expr> subset = ImmutableList.of();
+		for(Expr g : opps.children){
+		// for(Expr e: no_opps.children){
+			// for each opposite class Nary, try to find a absorption in Nary class
+			boolean found = false;
+			for(Expr e: no_opps.children){
+				subset = subset.append(e);
+				// create a no opp class
+				NaryExpr n = newNaryExpr(subset); // account for if x is an Nary expression.
+			// for(Expr g : opps.children){
+				NaryExpr grandchild = (NaryExpr) g;
+				for(Expr match: grandchild.children) { // check grandkids
+					if(e.equals(match) || n.equals(match)){
 						// new_list.append(e);
 						found = true;
 						break; // this should 
@@ -358,11 +368,12 @@ public abstract class NaryExpr extends Expr {
 				}
 				// if the loop was not broken add g into the list since 
 				// it does not have any matches
-				if(!found) new_list = new_list.append(g);
 			}
+			if(found) absorbed_list = absorbed_list.append(g); // to remove later
 		}
-		if(new_list.size() < 1) return this;
-		return newNaryExpr(new_list); 
+		// if(new_list.size() < 1) return this;
+		return this.removeAll(absorbed_list, Examiner.Equals);
+		// return newNaryExpr(new_list); 
     	// do not assert repOk(): this operation might leave the AST in an illegal state (with only one child)
 	}
 
@@ -370,37 +381,77 @@ public abstract class NaryExpr extends Expr {
 		// check if there are any conjunctions that are supersets of others
 		// e.g., ( a . b . c ) + ( a . b ) = a . b
 		
-		// look for any matching Nary expr in GRANDCHILDREN 
+		// look for any matching Nary expr in children 
 		NaryExpr opps = this.filter(this.getThatClass(), true);
 		ImmutableList<Expr> to_yeet = ImmutableList.of();
 		for(int n = 0; n < opps.children.size(); n++){
 				// we know is an NaryExpr
 				NaryExpr e = (NaryExpr) opps.children.get(n);
-				if(e.children.size() < 2) continue; // skip the expression
+				// if(e.children.size() < 2) continue; // skip the expression
 
-				ImmutableList<Expr> subsets = ImmutableList.of();
-				subsets = subsets.append(e.children.get(0)); // get first 
 				// search for each subset in all other expressions
-				for(int i=1; i < e.children.size(); i++){
-					subsets = subsets.append(e.children.get(i));
-					for(int m = n+1; m < opps.children.size(); m++){
-						NaryExpr match = (NaryExpr) opps.children.get(m);
-						boolean found = true;
-						// for each expression check if I can just match subset 
-						for(int j =0; j<=i; j++){
-							if(!match.children.get(j).equals(subsets.get(j))){
-								found = false;
+				// for(int i=1; i < e.children.size(); i++){
+					// subset = e.children; // 
+				// }
+				// can only absorb same nary expression type
+				// all loose expressions
+				boolean found = false;
+				NaryExpr vars = e.filter(VarExpr.class, true);
+				for(int m = 0; m < opps.children.size(); m++){
+					if(n==m) continue; // dont check yourself.
+					NaryExpr subset = (NaryExpr) opps.children.get(m);
+					// only try to find subsets in bigger sets
+					if(e.children.size() <= subset.children.size()) continue; // cant find a subset if smaller than subset
+					// if smaller, try to make a match from all vars
+					List<Expr> list = e.children;  // Immutable input list
+        			List<List<Expr>> powerset = powerset(list); 
+					for(List<Expr> set : powerset){
+						// base cases
+						// if(set.size() == 0) continue; // empty set skip
+						if(subset.children.size() != set.size()) continue;
+
+						// must be opposite class therefore cant make Nary
+						// just check expressions in order
+						//subset is the smaller list 
+						boolean subset_found = true; // assume true
+						for(int i=0; i < subset.children.size();i++) {
+							if(!subset.children.get(n).equals(set.get(n))){
+								subset_found = false;
 								break;
 							}
 						}
-						if(found) to_yeet = to_yeet.append(match);
+						if(subset_found) {
+							found = true;
+							break; // no need to search more
+						}
 					}
 				}
+				if(found) to_yeet = to_yeet.append(opps.children.get(n));
 		}
 		NaryExpr result = this.removeAll(to_yeet, Examiner.Equals);
+
+		assert(result.children.size()!=0);
 		return result;  
     	// do not assert repOk(): this operation might leave the AST in an illegal state (with only one child)
 	}
+
+	// just generic finding power set algorithm in java
+	public static <T> List<List<T>> powerset(List<T> list) {
+        List<List<T>> result = new ArrayList<>();
+        result.add(Collections.emptyList());  // Start with the empty subset
+        // Iterate over each element in the input list
+        for (T element : list) {
+            // For each existing subset, create a new subset that includes the current element
+            int currentSize = result.size();
+            for (int i = 0; i < currentSize; i++) {
+                List<T> newSubset = new ArrayList<>(result.get(i));
+                newSubset.add(element);
+                result.add(Collections.unmodifiableList(newSubset));  // Add the new subset as immutable
+            }
+        }
+
+        return Collections.unmodifiableList(result);  // Make the entire powerset immutable
+    }
 
 	/**
 	 * If there is only one child, return it (the containing NaryExpr is unnecessary).
