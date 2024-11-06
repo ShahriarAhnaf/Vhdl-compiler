@@ -67,56 +67,77 @@ public /*final*/ class WParboiledParser extends BaseParser351 {
 	public static WProgram parse(final String inputText) {
 		return (WProgram) process(WParboiledParser.class, inputText).resultValue;
 	}
-
-	/**
+/**
 	 * By convention we name the top production in the grammar "Program".
 	 */
 	@Override
-    public Rule Program() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
-    }
-
+	public Rule Program() {
+        return Sequence(
+            push (new WProgram()),
+            OneOrMore(
+                        Waveform(),
+                        push(((WProgram)pop(1)).append((Waveform)pop()))
+                    ),
+            EOI); // EIO defined where???
+	}
+    
 	/**
 	 * Each line of the input W file represents a "pin" in the circuit.
 	 */
     public Rule Waveform() {
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+        return Sequence(
+                        // ZeroOrMore(W1()), 
+                        Name(),
+                        push(match()), // name on stacc
+                        // debugStack(),
+                        Optional(W1()),
+                        ':' ,
+                        Optional(W1()),
+                        BitString(),
+                        debugStack(),
+                        push(new Waveform((ImmutableList<String>)pop(), (String)pop())), // ORDER MATTERS OF POP
+                        Optional(W1()),
+                        ';', 
+                        ZeroOrMore(W1()));
     }
 
     /**
-     * The first token on each line is the name of the pin that line represents.
+     * The first token in each statement is the name of the waveform 
+     * that statement represents.
      */
     public Rule Name() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        return OneOrMore(Letter());
     }
-    
+
     /**
      * A Name is composed of a sequence of Letters. 
      * Recall that PEGs incorporate lexing into the parser.
      */
     public Rule Letter() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        return FirstOf(CharRange('A','Z'), CharRange('a', 'z'));
     }
 
     /**
      * A BitString is the sequence of values for a pin.
+     * chances stack to have a list
      */
     public Rule BitString() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        // bit( bit)*
+        return Sequence(Bit(),
+                        push(ImmutableList.of(match())), // stack
+                        ZeroOrMore(Sequence(
+                                            W1(),
+                                            Bit(),
+                                            push(((ImmutableList)pop()).append(match())), // get the same list and append to it
+                                            debugStack()
+                                            )));
     }
     
     /**
      * A BitString is composed of a sequence of Bits. 
      * Recall that PEGs incorporate lexing into the parser.
      */
-    public Rule Bit() {   
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+    public Rule Bit() {       
+        return FirstOf('0','1');
     }
-
 }

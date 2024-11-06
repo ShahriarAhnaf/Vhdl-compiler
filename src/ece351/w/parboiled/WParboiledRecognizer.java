@@ -76,16 +76,23 @@ public /*final*/ class WParboiledRecognizer extends BaseParser351 {
 	 */
 	@Override
 	public Rule Program() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        return Sequence(OneOrMore(Waveform()),EOI); // EIO defined where???
 	}
     
 	/**
 	 * Each line of the input W file represents a "pin" in the circuit.
 	 */
     public Rule Waveform() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        return Sequence(
+                        // ZeroOrMore(W1()), 
+                        Name(),
+                        Optional(W1()),
+                        ':' ,
+                        Optional(W1()),
+                        BitString(),
+                        Optional(W1()),
+                        ';', 
+                        ZeroOrMore(W1()));
     }
 
     /**
@@ -93,8 +100,7 @@ throw new ece351.util.Todo351Exception();
      * that statement represents.
      */
     public Rule Name() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        return OneOrMore(Letter());
     }
 
     /**
@@ -102,16 +108,15 @@ throw new ece351.util.Todo351Exception();
      * Recall that PEGs incorporate lexing into the parser.
      */
     public Rule Letter() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        return FirstOf(CharRange('A','Z'), CharRange('a', 'z'));
     }
 
     /**
      * A BitString is the sequence of values for a pin.
      */
     public Rule BitString() {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        // bit( bit)*
+        return Sequence(Bit(), ZeroOrMore(Sequence(W1(),Bit())));
     }
     
     /**
@@ -119,8 +124,7 @@ throw new ece351.util.Todo351Exception();
      * Recall that PEGs incorporate lexing into the parser.
      */
     public Rule Bit() {       
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+        return FirstOf('0','1');
     }
 
 }
