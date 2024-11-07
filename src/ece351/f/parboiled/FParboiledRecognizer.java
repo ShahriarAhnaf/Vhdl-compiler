@@ -26,11 +26,20 @@
 
 package ece351.f.parboiled;
 
+import java.lang.foreign.Linker.Option;
 import java.lang.invoke.MethodHandles;
 
 import org.parboiled.Rule;
 
+import ece351.common.ast.AndExpr;
+import ece351.common.ast.AssignmentStatement;
+import ece351.common.ast.ConstantExpr;
 import ece351.common.ast.Constants;
+import ece351.common.ast.Expr;
+import ece351.common.ast.NotExpr;
+import ece351.common.ast.OrExpr;
+import ece351.common.ast.VarExpr;
+import ece351.f.ast.FProgram;
 import ece351.util.CommandLine;
 
 //Parboiled requires that this class not be final
@@ -58,8 +67,67 @@ public /*final*/ class FParboiledRecognizer extends FBase implements Constants {
 		// STUB: return NOTHING; // TODO: replace this stub
 		// For the grammar production Id, ensure that the Id does not match any of the keywords specified
 		// in the rule, 'Keyword'
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
-	}
+    	return Sequence(
+            OneOrMore(
+                formula()
+            ),
+            EOI
+        );
+    }
+
+    Rule formula() {
+        return Sequence(
+                var(),
+                Optional(W1()),
+                "<=",
+                Optional(W1()),
+                expr(),
+                ";",
+                ZeroOrMore(W1())
+        );
+     }
+    
+    Rule expr() { 
+        // call term on every or seperated object
+        return Sequence(
+                term(),
+                ZeroOrMore(
+                    W1(),OR(), W1() ,term() // term comes back with Expr on top.
+                    )
+        );
+     } 
+
+    Rule term() { 
+        return Sequence(
+                factor(),
+                ZeroOrMore(
+                    W1(),AND(), W1(), factor() // term comes back with Expr on top.
+                    )
+        );
+    }
+	Rule factor() { 
+        return  FirstOf(
+                    Sequence(NOT(), W1(),factor()),
+                    Sequence("(", Optional(W1()), expr(), Optional(W1()),")"),
+                    var(),
+                    constant()
+                );
+    }
+	Rule var() { 
+        // checks if its an id 
+        return Sequence(
+                        TestNot(Keyword()),
+                        OneOrMore(Char()) 
+                    );
+     }
+	Rule constant() { 
+        // 
+        return Sequence(
+                "'",
+                FirstOf("0","1"),// construct via string
+                "'"
+        );
+    } 
+
 
 }
