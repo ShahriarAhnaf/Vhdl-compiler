@@ -107,13 +107,13 @@ public /*final*/ class FParboiledParser extends FBase implements Constants {
     Rule formula() {
         return Sequence(
                 var(),
-                push(match()),
                 Optional(W1()),
                 "<=",
                 Optional(W1()),
                 expr(),
                 push(new AssignmentStatement(((VarExpr)pop(1)), (Expr)pop())),
-                ";",
+                ZeroOrMore(W1()),
+				";",
                 ZeroOrMore(W1())
         );
      }
@@ -122,7 +122,7 @@ public /*final*/ class FParboiledParser extends FBase implements Constants {
         // call term on every or seperated object
         return Sequence(
                 term(),
-                push(match()), // expr
+                // push(match()), // expr
                 ZeroOrMore(
 					W1(),OR(), W1() ,term(),
                     push(new OrExpr((Expr)pop(1), (Expr)pop())) // term comes back with Expr on top.
@@ -140,8 +140,8 @@ public /*final*/ class FParboiledParser extends FBase implements Constants {
 
     Rule term() { 
         return Sequence(
-                factor(),
-                push(match()), // expr
+                factor(), // will push either Constant / var 
+                // push(match()), // expr
                 ZeroOrMore(
                     		W1(),AND(), W1(), factor(),
                    			push(new AndExpr((Expr)pop(1), (Expr)pop())) // term comes back with Expr on top.
@@ -158,7 +158,7 @@ public /*final*/ class FParboiledParser extends FBase implements Constants {
     }
 	Rule factor() { 
 		return  FirstOf(
-			Sequence(NOT(), W1(),factor()),
+			Sequence(NOT(), W1(),factor(), push(new NotExpr((Expr)pop()))),
 			Sequence("(", Optional(W1()), expr(), Optional(W1()),")"),
 			var(),
 			constant()
@@ -191,7 +191,8 @@ public /*final*/ class FParboiledParser extends FBase implements Constants {
         // checks if its an id 
         return Sequence(
                         TestNot(Keyword()),
-                        OneOrMore(Char()) 
+                        OneOrMore(Char()),
+						push(new VarExpr(match()))
                     );
      }
 	Rule constant() { 
