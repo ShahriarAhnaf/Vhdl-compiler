@@ -123,17 +123,48 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 		header(out);
 		
 		// build a set of all of the exprs in the program
+		 // Step 1: Extract all unique expressions in the FProgram using ExtractAllExprs
+		 IdentityHashSet<Expr> uniqueExprs = ExtractAllExprs.allExprs(program);
+
+		 // Step 2: Populate the substitutions map to allow common subexpression elimination
+		 for (Expr expr : uniqueExprs) {
+			 if (!substitutions.containsKey(expr)) {
+				 substitutions.put(expr, expr);
+			 }
+			 else {
+				substitutions.put(substitutions.get(expr), expr); // fill the duplicate
+			 }
+		 }
+	 
+		 // each assignment statement in the program to create output nodes and edges
+		 for (AssignmentStatement stmt : program.formulas) {
+			 // Map each output variable's expression in substitutions
+			 
+			 // Visit the expression to create nodes and edges for the expression's structure
+			 if (stmt.expr instanceof NaryAndExpr) visitNaryAnd((NaryAndExpr)stmt.expr);
+			 else if (stmt.expr instanceof NaryOrExpr) visitNaryOr((NaryOrExpr)stmt.expr);
+			 else if (stmt.expr instanceof NotExpr) visitNot((NotExpr)stmt.expr);
+			 else if (stmt.expr instanceof VarExpr) visitVar((VarExpr)stmt.expr);
+			 else if (stmt.expr instanceof ConstantExpr) visitConstant((ConstantExpr)stmt.expr);
+			 else new IllegalArgumentException("expression type " + stmt.expr.getClass() + " is wack");
+			 visitVar(stmt.outputVar); // post process
+			 edge(stmt.expr,stmt.outputVar);
+		}
+	 
+		 //Print all unique nodes
+		 for (String node : nodes) {
+			 out.println(node);
+		 }
+	 
+		 // Print all unique edges in the order they were added
+		 for (String edge : edges) {
+			 out.println(edge);
+		 }
 		// build substitutions by determining equivalences of exprs
 		// create nodes for output vars
-		// attach images to gates
-		// ../../gates/not_noleads.png
-		// ../../gates/or_noleads.png
-		// ../../gates/and_noleads.png
 		// compute edges
-		// print nodes
 		// print edges
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+
 		// print footer
 		footer(out);
 		out.flush();
@@ -182,33 +213,43 @@ throw new ece351.util.Todo351Exception();
 	@Override
 	public Expr visitNot(final NotExpr e) {
 		edge(e.expr, e);
+		node(e.serialNumber(),e.serialNumber(), "../../gates/not_noleads.png");
+		return e;
+	}
+
+	// these should not exist since Fprogram parses them into Nary..?
+	@Override
+	public Expr visitAnd(final AndExpr e) {
+		edge(e.left, e);
+		edge(e.right, e);
+		node(e.serialNumber(),e.serialNumber(), "../../gates/and_noleads.png");
 		return e;
 	}
 
 	@Override
-	public Expr visitAnd(final AndExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
-		// return e;
-	}
-
-	@Override
 	public Expr visitOr(final OrExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
-		// return e;
+		edge(e.left, e);
+		edge(e.right, e);
+		node(e.serialNumber(),e.serialNumber(), "../../gates/or_noleads.png");
+		return e;
 	}
 	
 	@Override public Expr visitNaryAnd(final NaryAndExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
-		// return e;
+		// and expr
+		node(e.serialNumber(),e.serialNumber(), "../../gates/and_noleads.png");
+		for (Expr child : e.children) {
+			edge(visitExpr(child), e);
+		}
+		return e;
 	}
 
 	@Override public Expr visitNaryOr(final NaryOrExpr e) { 
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
-		// return e;
+		// or expr
+		node(e.serialNumber(),e.serialNumber(), "../../gates/or_noleads.png");
+		for (Expr child : e.children) {
+			edge(visitExpr(child), e); // recursive
+		}
+		return e;
 	}
 
 
@@ -228,6 +269,26 @@ throw new ece351.util.Todo351Exception();
 		edges.add("    " + source + " -> " + target + " ;");
 	}
 	
+	public Expr visitExpr(final Expr e) {
+		// Check the type of expression and call the corresponding visit method
+		if (e instanceof ConstantExpr) {
+			return visitConstant((ConstantExpr) e);
+		} else if (e instanceof VarExpr) {
+			return visitVar((VarExpr) e);
+		} else if (e instanceof NotExpr) {
+			return visitNot((NotExpr) e);
+		} else if (e instanceof AndExpr) {
+			return visitAnd((AndExpr) e);
+		} else if (e instanceof OrExpr) {
+			return visitOr((OrExpr) e);
+		} else if (e instanceof NaryAndExpr) {
+			return visitNaryAnd((NaryAndExpr) e);
+		} else if (e instanceof NaryOrExpr) {
+			return visitNaryOr((NaryOrExpr) e);
+		} else {
+			throw new IllegalArgumentException("Unknown expression type: " + e.getClass());
+		}
+	}
 	@Override public Expr visitXOr(final XOrExpr e) { throw new IllegalStateException("TechnologyMapper does not support " + e.getClass()); }
 	@Override public Expr visitNAnd(final NAndExpr e) { throw new IllegalStateException("TechnologyMapper does not support " + e.getClass()); }
 	@Override public Expr visitNOr(final NOrExpr e) { throw new IllegalStateException("TechnologyMapper does not support " + e.getClass()); }
