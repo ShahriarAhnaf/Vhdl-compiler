@@ -149,43 +149,6 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 				}
 			}
 		}
-		for (Expr expr : allexprs) {
-			if(expr instanceof NaryExpr){
-				if(de_morgan_viable((NaryExpr)expr)){
-					// add substitute 
-					NaryExpr n = (NaryExpr) expr;
-
-					ImmutableList<Expr> new_list = ImmutableList.of();
-					for(Expr child : n.children){
-						if(child instanceof NotExpr){
-							new_list = new_list.append(substitutions.get( ((NotExpr)child).expr ) );
-							substitutions.put(child,((NotExpr)child).expr);
-						}else {
-							NotExpr lol = new NotExpr(substitutions.get(child));
-							new_list = new_list.append(lol);
-							substitutions.put(child,lol);
-						}
-					}
-					NotExpr lel;
-					if(n instanceof NaryAndExpr) {
-						lel = new NotExpr(new NaryOrExpr(new_list));
-					}else lel = new NotExpr(new NaryAndExpr(new_list));
-					// allexprs.add(lel);
-					substitutions.put(expr, lel); // new nary set
-					substitutions.put(lel,lel);
-				}
-			}
-		 }
-
-		 // Populate the substitutions map to allow common subexpression elimination with isomorphic
-		//  for (Expr expr : allexprs) {
-		// 	for (Expr other_e : allexprs) {
-		// 		if(expr.isomorphic(other_e)) { 
-		// 			substitutions.put(expr,other_e);
-		// 		}
-		// 	}
-		// }
-
 		// each assignment statement in the program to create output nodes and edges
 		 for (AssignmentStatement stmt : program.formulas) {
 			 // Visit the expression to create nodes and edges for the expression's structure
@@ -249,15 +212,9 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 
 	@Override
 	public Expr visitNot(final NotExpr e) {
-		if(substitutions.get(e) instanceof NotExpr) {
 			edge(visitExpr(e.expr), e);
 			node(e.serialNumber(),e.serialNumber(), "../../gates/not_noleads.png");	
-			return e;
-		}
-		else {
-			// edge(visitExpr(substitutions.get(e)),substitutions.get(e));
 			return substitutions.get(e);
-		}
 	}
 
 	// these should not exist since Fprogram parses them into Nary..?
@@ -279,8 +236,6 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 	
 	@Override public Expr visitNaryAnd(final NaryAndExpr e) {
 		// and expr
-		// demorgan proofing
-		if(substitutions.get(e) instanceof NaryAndExpr) {
 			node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
 			for (Expr child : e.children) {
 				visitExpr(child); // visit lower level first
@@ -289,17 +244,10 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 				edge(child, substitutions.get(e));
 			}
 			return substitutions.get(e); // account for subexpression elimination 
-		} else {
-			// replaced by not expression.
-			// traverse that instead
-			NotExpr n = (NotExpr)substitutions.get(e);
-			return substitutions.get(visitNot(n));
-		}
 	}
 
 	@Override public Expr visitNaryOr(final NaryOrExpr e) { 
 		// or expr
-		if(substitutions.get(e) instanceof NaryOrExpr) {
 			node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
 			for (Expr child : e.children) {
 				visitExpr(child); // visit lower level first
@@ -307,13 +255,7 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 			for (Expr child : e.children) {
 				edge(child, substitutions.get(e));
 			}
-			return substitutions.get(e); // account for subexpression elimination 
-		} else {
-			// replaced by not expression.
-			// traverse that instead
-			NotExpr n = (NotExpr)substitutions.get(e);
-			return substitutions.get(visitNot(n));
-		}
+			return substitutions.get(e); // account for subexpression elimination
 	}
 
 
