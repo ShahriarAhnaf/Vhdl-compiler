@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.parboiled.common.ImmutableList;
+
 import kodkod.util.collections.IdentityHashSet;
 import ece351.common.ast.AndExpr;
 import ece351.common.ast.AssignmentStatement;
@@ -42,6 +44,7 @@ import ece351.common.ast.Expr;
 import ece351.common.ast.NAndExpr;
 import ece351.common.ast.NOrExpr;
 import ece351.common.ast.NaryAndExpr;
+import ece351.common.ast.NaryExpr;
 import ece351.common.ast.NaryOrExpr;
 import ece351.common.ast.NotExpr;
 import ece351.common.ast.OrExpr;
@@ -117,38 +120,76 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 	public void render(final FProgram program) {
 		render(program, Examiner.Isomorphic);
 	}
-
+	
+	private boolean de_morgan_viable(NaryExpr n){
+		int expression_count = 0;
+				int not_count = 0;
+				// count not expresisons in children.
+				for(Expr child : n.children){
+					expression_count++;
+					if(child instanceof NotExpr) not_count++;
+				}
+				if(not_count >= Math.ceil(expression_count/2)) {
+					// add the demorgan as the substitute for the expression
+					return true;
+				}
+				return false;
+	}
 	/** Where the real work happens. */
 	public void render(final FProgram program, final Examiner examiner) {
 		header(out);
 		
 		// build a set of all of the exprs in the program
-		 // Step 1: Extract all unique expressions in the FProgram using ExtractAllExprs
-		 IdentityHashSet<Expr> uniqueExprs = ExtractAllExprs.allExprs(program);
+		 // Extract all equal expressions in the FProgram using ExtractAllExprs
+		 IdentityHashSet<Expr> allexprs = ExtractAllExprs.allExprs(program);
+		 for (Expr expr : allexprs) {
+			for (Expr other_e : allexprs) {
+				if(expr.isomorphic(other_e)) { 
+					substitutions.put(expr,other_e);
+				}
+			}
+		}
+		for (Expr expr : allexprs) {
+			if(expr instanceof NaryExpr){
+				if(de_morgan_viable((NaryExpr)expr)){
+					// add substitute 
+					NaryExpr n = (NaryExpr) expr;
 
-		 // Step 2: Populate the substitutions map to allow common subexpression elimination
-		 for (Expr expr : uniqueExprs) {
-			 if (!substitutions.containsKey(expr)) {
-				 substitutions.put(expr, expr);
-			 }
-			 else {
-				substitutions.put(substitutions.get(expr), expr); // fill the duplicate
-			 }
+					ImmutableList<Expr> new_list = ImmutableList.of();
+					for(Expr child : n.children){
+						if(child instanceof NotExpr){
+							new_list = new_list.append(substitutions.get( ((NotExpr)child).expr ) );
+							substitutions.put(child,((NotExpr)child).expr);
+						}else {
+							NotExpr lol = new NotExpr(substitutions.get(child));
+							new_list = new_list.append(lol);
+							substitutions.put(child,lol);
+						}
+					}
+					NotExpr lel;
+					if(n instanceof NaryAndExpr) {
+						lel = new NotExpr(new NaryOrExpr(new_list));
+					}else lel = new NotExpr(new NaryAndExpr(new_list));
+					// allexprs.add(lel);
+					substitutions.put(expr, lel); // new nary set
+					substitutions.put(lel,lel);
+				}
+			}
 		 }
-	 
-		 // each assignment statement in the program to create output nodes and edges
+
+		 // Populate the substitutions map to allow common subexpression elimination with isomorphic
+		//  for (Expr expr : allexprs) {
+		// 	for (Expr other_e : allexprs) {
+		// 		if(expr.isomorphic(other_e)) { 
+		// 			substitutions.put(expr,other_e);
+		// 		}
+		// 	}
+		// }
+
+		// each assignment statement in the program to create output nodes and edges
 		 for (AssignmentStatement stmt : program.formulas) {
-			 // Map each output variable's expression in substitutions
-			 
 			 // Visit the expression to create nodes and edges for the expression's structure
-			 if (stmt.expr instanceof NaryAndExpr) visitNaryAnd((NaryAndExpr)stmt.expr);
-			 else if (stmt.expr instanceof NaryOrExpr) visitNaryOr((NaryOrExpr)stmt.expr);
-			 else if (stmt.expr instanceof NotExpr) visitNot((NotExpr)stmt.expr);
-			 else if (stmt.expr instanceof VarExpr) visitVar((VarExpr)stmt.expr);
-			 else if (stmt.expr instanceof ConstantExpr) visitConstant((ConstantExpr)stmt.expr);
-			 else new IllegalArgumentException("expression type " + stmt.expr.getClass() + " is wack");
-			 visitVar(stmt.outputVar); // post process
-			 edge(stmt.expr,stmt.outputVar);
+			 edge(substitutions.get(visitExpr(stmt.expr)), visitExpr(stmt.outputVar));
 		}
 	 
 		 //Print all unique nodes
@@ -160,10 +201,6 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 		 for (String edge : edges) {
 			 out.println(edge);
 		 }
-		// build substitutions by determining equivalences of exprs
-		// create nodes for output vars
-		// compute edges
-		// print edges
 
 		// print footer
 		footer(out);
@@ -204,7 +241,7 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 
 	@Override
 	public Expr visitVar(final VarExpr e) {
-		final Expr e2 = substitutions.get(e);
+		final Expr e2 = substitutions.get(e); // from already made table
 		assert e2 != null : "no substitution for " + e + " " + e.serialNumber();
 		node(e2.serialNumber(), e2.toString());
 		return e;
@@ -212,9 +249,15 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 
 	@Override
 	public Expr visitNot(final NotExpr e) {
-		edge(e.expr, e);
-		node(e.serialNumber(),e.serialNumber(), "../../gates/not_noleads.png");
-		return e;
+		if(substitutions.get(e) instanceof NotExpr) {
+			edge(visitExpr(e.expr), e);
+			node(e.serialNumber(),e.serialNumber(), "../../gates/not_noleads.png");	
+			return e;
+		}
+		else {
+			// edge(visitExpr(substitutions.get(e)),substitutions.get(e));
+			return substitutions.get(e);
+		}
 	}
 
 	// these should not exist since Fprogram parses them into Nary..?
@@ -222,7 +265,7 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 	public Expr visitAnd(final AndExpr e) {
 		edge(e.left, e);
 		edge(e.right, e);
-		node(e.serialNumber(),e.serialNumber(), "../../gates/and_noleads.png");
+		node(substitutions.get(e).serialNumber(), substitutions.get(e).serialNumber(), "../../gates/and_noleads.png");
 		return e;
 	}
 
@@ -230,26 +273,47 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 	public Expr visitOr(final OrExpr e) {
 		edge(e.left, e);
 		edge(e.right, e);
-		node(e.serialNumber(),e.serialNumber(), "../../gates/or_noleads.png");
+		node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
 		return e;
 	}
 	
 	@Override public Expr visitNaryAnd(final NaryAndExpr e) {
 		// and expr
-		node(e.serialNumber(),e.serialNumber(), "../../gates/and_noleads.png");
-		for (Expr child : e.children) {
-			edge(visitExpr(child), e);
+		// demorgan proofing
+		if(substitutions.get(e) instanceof NaryAndExpr) {
+			node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
+			for (Expr child : e.children) {
+				visitExpr(child); // visit lower level first
+			}
+			for (Expr child : e.children) {
+				edge(child, substitutions.get(e));
+			}
+			return substitutions.get(e); // account for subexpression elimination 
+		} else {
+			// replaced by not expression.
+			// traverse that instead
+			NotExpr n = (NotExpr)substitutions.get(e);
+			return substitutions.get(visitNot(n));
 		}
-		return e;
 	}
 
 	@Override public Expr visitNaryOr(final NaryOrExpr e) { 
 		// or expr
-		node(e.serialNumber(),e.serialNumber(), "../../gates/or_noleads.png");
-		for (Expr child : e.children) {
-			edge(visitExpr(child), e); // recursive
+		if(substitutions.get(e) instanceof NaryOrExpr) {
+			node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
+			for (Expr child : e.children) {
+				visitExpr(child); // visit lower level first
+			}
+			for (Expr child : e.children) {
+				edge(child, substitutions.get(e));
+			}
+			return substitutions.get(e); // account for subexpression elimination 
+		} else {
+			// replaced by not expression.
+			// traverse that instead
+			NotExpr n = (NotExpr)substitutions.get(e);
+			return substitutions.get(visitNot(n));
 		}
-		return e;
 	}
 
 
@@ -277,16 +341,16 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 			return visitVar((VarExpr) e);
 		} else if (e instanceof NotExpr) {
 			return visitNot((NotExpr) e);
-		} else if (e instanceof AndExpr) {
-			return visitAnd((AndExpr) e);
-		} else if (e instanceof OrExpr) {
-			return visitOr((OrExpr) e);
+		// } else if (e instanceof AndExpr) {
+		// 	return visitAnd((AndExpr) e);
+		// } else if (e instanceof OrExpr) {
+		// 	return visitOr((OrExpr) e);
 		} else if (e instanceof NaryAndExpr) {
 			return visitNaryAnd((NaryAndExpr) e);
 		} else if (e instanceof NaryOrExpr) {
 			return visitNaryOr((NaryOrExpr) e);
 		} else {
-			throw new IllegalArgumentException("Unknown expression type: " + e.getClass());
+			throw new IllegalArgumentException("non supported expression type: " + e.getClass());
 		}
 	}
 	@Override public Expr visitXOr(final XOrExpr e) { throw new IllegalStateException("TechnologyMapper does not support " + e.getClass()); }
