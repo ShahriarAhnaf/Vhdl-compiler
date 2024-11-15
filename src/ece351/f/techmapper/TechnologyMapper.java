@@ -129,7 +129,8 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 					expression_count++;
 					if(child instanceof NotExpr) not_count++;
 				}
-				if(not_count >= Math.ceil(expression_count/2)) {
+				// not a or not b or c == not (a and b and not c) SHOULD NOT HAPPEN
+				if(not_count > Math.ceil(expression_count/2)) {
 					// add the demorgan as the substitute for the expression
 					return true;
 				}
@@ -141,7 +142,19 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 		
 		// build a set of all of the exprs in the program
 		 // Extract all equal expressions in the FProgram using ExtractAllExprs
-		 IdentityHashSet<Expr> allexprs = ExtractAllExprs.allExprs(program);
+		 IdentityHashSet<Expr> fake = ExtractAllExprs.allExprs(program);
+		 for (Expr expr : fake) {
+			for (Expr other_e : fake) {
+				if(expr.isomorphic(other_e)) { 
+					substitutions.put(expr,other_e);
+				}
+			}
+		}
+		FProgram visited = traverseFProgram(program); // traverse AST and build edges and nodes
+		nodes.clear();
+		edges.clear();
+		substitutions.clear(); // new drip adding soon
+		IdentityHashSet<Expr> allexprs = ExtractAllExprs.allExprs(visited);
 		 for (Expr expr : allexprs) {
 			for (Expr other_e : allexprs) {
 				if(expr.isomorphic(other_e)) { 
@@ -150,7 +163,7 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 			}
 		}
 		// each assignment statement in the program to create output nodes and edges
-		 for (AssignmentStatement stmt : program.formulas) {
+		 for (AssignmentStatement stmt : visited.formulas) {
 			 // Visit the expression to create nodes and edges for the expression's structure
 			 edge(substitutions.get(visitExpr(stmt.expr)), visitExpr(stmt.outputVar));
 		}
@@ -233,31 +246,80 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 		node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
 		return e;
 	}
-	
+
 	@Override public Expr visitNaryAnd(final NaryAndExpr e) {
 		// and expr
-			node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
-			for (Expr child : e.children) {
-				visitExpr(child); // visit lower level first
+			if(de_morgan_viable( (NaryExpr)e) ) {
+				// change the ast...? by flipping
+				NaryExpr n = (NaryExpr) e;
+					ImmutableList<Expr> new_list = ImmutableList.of();
+					for(Expr child : n.children){
+						if(child instanceof NotExpr){
+							new_list = new_list.append( ((NotExpr)child).expr );
+						}else {
+							NotExpr lol = new NotExpr(child);
+							new_list = new_list.append(lol);
+						}
+					}
+					return new NotExpr(new NaryOrExpr(new_list));
 			}
-			for (Expr child : e.children) {
-				edge(child, substitutions.get(e));
+			else 
+			{
+				// node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
+				// for (Expr child : e.children) {
+				// 	visitExpr(child); // visit lower level first
+				// }
+				// for (Expr child : e.children) {
+				// 	edge(child, substitutions.get(e));
+				// }
+				// return substitutions.get(e); // account for subexpression elimination 
+				node(e.serialNumber(),e.serialNumber(), "../../gates/or_noleads.png");
+				for (Expr child : e.children) {
+					visitExpr(child); // visit lower level first
+				}
+				for (Expr child : e.children) {
+					edge(child, e);
+				}
+				return e ;
 			}
-			return substitutions.get(e); // account for subexpression elimination 
 	}
-
 	@Override public Expr visitNaryOr(final NaryOrExpr e) { 
 		// or expr
-			node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
-			for (Expr child : e.children) {
-				visitExpr(child); // visit lower level first
-			}
-			for (Expr child : e.children) {
-				edge(child, substitutions.get(e));
-			}
-			return substitutions.get(e); // account for subexpression elimination
+		if(de_morgan_viable((NaryExpr)e) ) {
+			// change the ast...? by flipping
+			NaryExpr n = (NaryExpr) e;
+				ImmutableList<Expr> new_list = ImmutableList.of();
+				for(Expr child : n.children){
+					if(child instanceof NotExpr){
+						new_list = new_list.append( ((NotExpr)child).expr );
+					}else {
+						NotExpr lol = new NotExpr(child);
+						new_list = new_list.append(lol);
+					}
+				}
+				return new NotExpr(new NaryAndExpr(new_list));
+		}
+		else 
+		{
+			// node(substitutions.get(e).serialNumber(),substitutions.get(e).serialNumber(), "../../gates/or_noleads.png");
+			// for (Expr child : e.children) {
+			// 	visitExpr(child); // visit lower level first
+			// }
+			// for (Expr child : e.children) {
+			// 	edge(child, substitutions.get(e));
+			// }
+			// return substitutions.get(e); // account for subexpression elimination
+			// THIS LOW KEY SHOULDNT WORK WTF
+			node(e.serialNumber(),e.serialNumber(), "../../gates/and_noleads.png");
+				for (Expr child : e.children) {
+					visitExpr(child); // visit lower level first
+				}
+				for (Expr child : e.children) {
+					edge(child, e);
+				}
+				return e ;
+		}
 	}
-
 
 	private void node(final String name, final String label) {
 		nodes.add("    " + name + "[label=\"" + label + "\"];");
