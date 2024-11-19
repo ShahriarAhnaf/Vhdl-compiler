@@ -26,7 +26,6 @@
 
 package ece351.f.parboiled;
 
-import java.lang.foreign.Linker.Option;
 import java.lang.invoke.MethodHandles;
 
 import org.parboiled.Rule;
