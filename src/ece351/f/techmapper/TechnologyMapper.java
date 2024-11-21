@@ -280,7 +280,7 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 				for (Expr child : e.children) {
 					edge(child, e);
 				}
-				return e ;
+				return e;
 			}
 	}
 	@Override public Expr visitNaryOr(final NaryOrExpr e) { 
