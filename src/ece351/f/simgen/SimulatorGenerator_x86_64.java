@@ -212,7 +212,6 @@ public class SimulatorGenerator_x86_64 extends PostOrderExprVisitor {
 	/** Expect operands in %rax and %rbx. */
 	@Override
 	public Expr visitOr(final OrExpr e) {
-// TODO: short code snippet
 		// traverseExpr(e.left);
 		// traverseExpr(e.right);
 		println("popq", "%rax");
@@ -297,7 +296,6 @@ public class SimulatorGenerator_x86_64 extends PostOrderExprVisitor {
 	
 	private void outputValue() {
 		// movq value to output into ARG_REGISTER
-		// TODO: short code snippet
 		println("movq", "%rax" , ARG_REGISTER); // retrieve the function output from stacc
 		println("add", "$48", ARG_REGISTER); // char for 0 is ASCII 48, adding the offset necessary
 		println("call", PUTCHAR);
