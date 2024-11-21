@@ -168,8 +168,8 @@ public class SimulatorGenerator_x86_64 extends PostOrderExprVisitor {
 	/** Movq constant value to %rax and pushq it on the stack. */
 	@Override
 	public Expr visitConstant(final ConstantExpr e) {
-// TODO: short code snippet
-		println("movq", e.b ? "1" : "0", "%rax");
+		println("movq",e.b ? "$1" : "$0", "%rax");
+		println("pushq", "%rax");
 		return e;
 	}
 
@@ -178,8 +178,8 @@ public class SimulatorGenerator_x86_64 extends PostOrderExprVisitor {
 	public Expr visitVar(final VarExpr e) {
 		// doesnt matter if there is duplicate moving 
 		String reg_name = registerAllocation.get(currentAStmt).get(e.identifier); // search via string now 
-		println("movq" , reg_name, "%rax");
-		println("pushq", "%rax");
+		// println("movq" , reg_name, "%rax");
+		println("pushq", reg_name);
 		println("// visit VAR return for " + e);
 		return e;
 	}
@@ -190,6 +190,7 @@ public class SimulatorGenerator_x86_64 extends PostOrderExprVisitor {
 		// traverseExpr(e.expr); // looks like it traverses kinda automatically
 		println("popq", "%rax"); // get result from traversal
 		println("notq" , "%rax"); // flip rax since that has the result
+		println("andq", "$1", "%rax"); // only take the first bit
 		println("pushq", "%rax"); // push the result for next operators
 		println("// visit NOT return for " + e);
 		return e;
