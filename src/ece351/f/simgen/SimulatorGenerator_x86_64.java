@@ -29,7 +29,7 @@ package ece351.f.simgen;
 import java.io.PrintWriter;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.Map.Entry;
+// import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -70,7 +70,7 @@ public class SimulatorGenerator_x86_64 extends PostOrderExprVisitor {
 	 * Each AssignmentStatement uses a different subset of the input variables.
 	 * So each AssignmentStatement needs its own mapping of input variables to registers.
 	 */
-	private SortedMap<AssignmentStatement, SortedMap<VarExpr, String>> registerAllocation;
+	private SortedMap<AssignmentStatement, SortedMap<String, String>> registerAllocation;
 	
 
 	/** The current level of indenting. */
@@ -103,15 +103,20 @@ public class SimulatorGenerator_x86_64 extends PostOrderExprVisitor {
 
 		// overall header
 		genHeader();
-		
+		println(""); // lil bit of space
 		// allocate storage to remember how registers are allocated
-		registerAllocation = new TreeMap<AssignmentStatement, SortedMap<VarExpr, String>>(ASTMT_COMPARATOR);
+		registerAllocation = new TreeMap<AssignmentStatement, SortedMap<String, String>>(ASTMT_COMPARATOR);
 
 		// allocate registers + generate assembly procedure for each formula
 		for (final AssignmentStatement stmt : fprog.formulas)
 		{
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+			// allocate a map for the register 
+			allocateRegisters(stmt);
+			// genFuncHeader("out_" + stmt.outputVar.identifier);
+			//function assumes that header will be loaded onto memory before calling in main.
+			generate(stmt); // traverses and goes crazy with the rizz. 
+			// genFuncFooter();
+			println(""); // lil bit of space
 		}
 		
 		// header for main
@@ -126,9 +131,11 @@ throw new ece351.util.Todo351Exception();
 				genx86PutChar(' ');
 				// call the procedure to evaluate this formula at this time
 				// first load the input variables into the registers
+				loadRegisters(wprog, t, stmt); // current statement input vars ready 
+				functionCall(stmt);
+				outputValue();
 				// then output the resulting value
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+				
 			}
 			genx86PutChar(';');
 			genx86PutChar('\n');
@@ -149,48 +156,78 @@ throw new ece351.util.Todo351Exception();
 		
 		final String funcName = "out_" + currentAStmt.outputVar;
 
-		// generate header, traverse expr, generate footer
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		// generate header, generate footer
+		genFuncHeader(funcName);
+		// traverse expr
+		traverseAssignmentStatement(stmt);
+
+		// generate footer 
+		genFuncFooter();
 	}
 	
 	/** Movq constant value to %rax and pushq it on the stack. */
 	@Override
 	public Expr visitConstant(final ConstantExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		println("movq",e.b ? "$1" : "$0", "%rax");
+		println("pushq", "%rax");
+		return e;
 	}
 
 	/** Pushq a variable onto the stack from its allocated register. */
 	@Override
 	public Expr visitVar(final VarExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		// doesnt matter if there is duplicate moving 
+		String reg_name = registerAllocation.get(currentAStmt).get(e.identifier); // search via string now 
+		// println("movq" , reg_name, "%rax");
+		println("pushq", reg_name);
+		println("// visit VAR return for " + e);
+		return e;
 	}
 
 	/** Expect operand in %rax. What operator to use? Think bitwise. */
 	@Override
 	public Expr visitNot(final NotExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		// traverseExpr(e.expr); // looks like it traverses kinda automatically
+		println("popq", "%rax"); // get result from traversal
+		println("notq" , "%rax"); // flip rax since that has the result
+		println("andq", "$1", "%rax"); // only take the first bit
+		println("pushq", "%rax"); // push the result for next operators
+		println("// visit NOT return for " + e);
+		return e;
 	}
 
 	/** Expect operands in %rax and %rbx. */
 	@Override
 	public Expr visitAnd(final AndExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		// traverseExpr(e.left);
+		// traverseExpr(e.right);
+		println("popq", "%rax");
+		println("popq", "%rbx");
+		println("andq", "%rbx", "%rax");
+		println("pushq", "%rax");
+		println("// visit AND return with operands " + e.left + " AND " + e.right);
+		return e;
 	}
 
 	/** Expect operands in %rax and %rbx. */
 	@Override
 	public Expr visitOr(final OrExpr e) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		// traverseExpr(e.left);
+		// traverseExpr(e.right);
+		println("popq", "%rax");
+		println("popq", "%rbx");
+		println("orq", "%rbx", "%rax");
+		println("pushq", "%rax");
+		println("// visit AND return with operands " + e.left + " OR " + e.right);
+		return e;
 	}
 
-	@Override public Expr visitNaryAnd(final NaryAndExpr e) { throw new UnsupportedOperationException(); }
-	@Override public Expr visitNaryOr(final NaryOrExpr e) { throw new UnsupportedOperationException(); }
+	@Override public Expr visitNaryAnd(final NaryAndExpr e) {
+		throw new UnsupportedOperationException(); 
+	}
+	@Override public Expr visitNaryOr(final NaryOrExpr e) { 
+		throw new UnsupportedOperationException(); 
+	}
 	@Override public Expr visitNOr(final NOrExpr e) { throw new UnsupportedOperationException(); }
 	@Override public Expr visitXOr(final XOrExpr e) { throw new UnsupportedOperationException(); }
 	@Override public Expr visitXNOr(final XNOrExpr e) { throw new UnsupportedOperationException(); }
@@ -198,9 +235,13 @@ throw new ece351.util.Todo351Exception();
 	@Override public Expr visitEqual(final EqualExpr e) { throw new UnsupportedOperationException(); }
 
 	private void loadRegisters(final WProgram wprog, final int t, final AssignmentStatement stmt) {
-		final Map<VarExpr, String> mvars_regs = registerAllocation.get(stmt);
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		final Map<String, String> mvars_regs = registerAllocation.get(stmt);
+		
+			// for every input register 
+		for( Map.Entry<String, String> entry : mvars_regs.entrySet()) {
+			final int value = wprog.valueAtTime(entry.getKey(), t) ? 1 : 0;
+			load_reg(value, entry.getValue()); // holds the r# reg nums
+		}
 	}
 
 	private void allocateRegisters(final AssignmentStatement stmt)
@@ -210,9 +251,17 @@ throw new ece351.util.Todo351Exception();
 		{
 			throw new UnsupportedOperationException("can't process formula with more than 8 input variables");
 		}
+		int reg_offset = 8;
+		SortedMap<String, String> regMap = new TreeMap<>();
 		
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		// map them 
+		// for each var Expr you find add the r# in string form... 
+	
+		for(String s: inputs) {
+			regMap.put(s, "%r" + reg_offset);
+			reg_offset++;
+		}
+		registerAllocation.put(stmt, regMap);
 	}
 	
 	private void genHeader()
@@ -247,15 +296,13 @@ throw new ece351.util.Todo351Exception();
 	
 	private void outputValue() {
 		// movq value to output into ARG_REGISTER
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
-		println("add", "$48", ARG_REGISTER); // char for 0 is ASCII 48
+		println("movq", "%rax" , ARG_REGISTER); // retrieve the function output from stacc
+		println("add", "$48", ARG_REGISTER); // char for 0 is ASCII 48, adding the offset necessary
 		println("call", PUTCHAR);
 	}
 
 	private void functionCall(final AssignmentStatement stmt) {
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		println("call", "out_" + stmt.outputVar);
 	}
 
 	private void printIdentifier(final String identifier) {
@@ -265,6 +312,10 @@ throw new ece351.util.Todo351Exception();
 			genx86PutChar(ch);
 		}	
 		genx86PutChar(':');
+	}
+
+	private void load_reg(final int value, String reg_name ) {
+		println("movq", "$" + value, reg_name);
 	}
 
 	private void genx86PutChar(final char ch) {
