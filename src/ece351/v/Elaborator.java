@@ -62,6 +62,7 @@ import ece351.v.ast.VProgram;
 public final class Elaborator extends PostOrderExprVisitor {
 
 	private final Map<String, String> current_map = new LinkedHashMap<String, String>();
+	private final Map<String, DesignUnit> design_lookup = new LinkedHashMap<String, DesignUnit>();
 	
 	public static void main(String[] args) {
 		System.out.println(elaborate(args));
@@ -89,24 +90,60 @@ public final class Elaborator extends PostOrderExprVisitor {
 		VProgram result = new VProgram();
 		int compCount = 0;
 
-		// iterate over all of the designUnits in root.
-		// for each one, construct a new architecture.
-		// Architecture a = du.arch.varyComponents(ImmutableList.<Component>of());
-		// this gives us a copy of the architecture with an empty list of components.
-		// now we can build up this Architecture with new components.
+		for(DesignUnit du: root.designUnits){
+			// iterate over all of the designUnits in root.
+			// for each one, construct a new architecture.
+			// design_lookup.put(du.arch.architectureName, du);
+			design_lookup.put(du.entity.identifier, du); // only need entity
+			Architecture a = du.arch.varyComponents(ImmutableList.<Component>of());
+			// this gives us a copy of the architecture with an empty list of components.
+			// now we can build up this Architecture with new components.
 			// In the elaborator, an architectures list of signals, and set of statements may change (grow)
-						//populate dictionary/map	
-						//add input signals, map to ports
-						//add output signals, map to ports
-						//add local signals, add to signal list of current designUnit						
-						//loop through the statements in the architecture body		
-							// make the appropriate variable substitutions for signal assignment statements
-							// i.e., call changeStatementVars
-							// make the appropriate variable substitutions for processes (sensitivity list, if/else body statements)
-							// i.e., call expandProcessComponent
+			//populate dictionary/map
+			for(String bruh : du.entity.input){
+				current_map.put(bruh, bruh);
+			}
+			for(String bruh : du.entity.output){
+				current_map.put(bruh, bruh);
+			}
+			for(Component c: du.arch.components) { // for every instance elaborate it.
+				compCount++;
+				
+				// find DU
+				DesignUnit comp_design = design_lookup.get(c.entityName);
+				
+				//add input signals, map to ports
+				// always inputs first 
+				for(int i=0; i < comp_design.entity.input.size(); i++) {
+					// port -> inputs
+					current_map.put(comp_design.entity.input.get(i) ,c.signalList.get(i));
+				}
+				for(int i=comp_design.entity.input.size(); i < comp_design.entity.output.size()+comp_design.entity.input.size(); i++){
+				// add output signal map to port
+					current_map.put(comp_design.entity.output.get(i) ,c.signalList.get(i));
+				}	
+				//add local signals, add to signal list of current designUnit
+				for(String local_sig : comp_design.arch.signals){
+					a.appendSignal( "comp_" + local_sig);
+					current_map.put(local_sig, "comp_" + local_sig);
+				}						
+				//loop through the statements in the architecture body		
+				// assumption that all entitys being substituted are only statements by induction
+				for(Statement s: comp_design.arch.statements){
+					a.appendStatement(s);
+				}
+				// make the appropriate variable substitutions for signal assignment statements
+				// i.e., call changeStatementVars\
+				
+
+			}
+			
+			// make the appropriate variable substitutions for processes (sensitivity list, if/else body statements)
+			// i.e., call expandProcessComponent
 			 // append this new architecture to result
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		}
+			 // TODO: longer code snippet
+// throw new ece351.util.Todo351Exception();
 		assert result.repOk();
 		return result;
 	}
@@ -133,8 +170,7 @@ throw new ece351.util.Todo351Exception();
 	@Override
 	public Expr visitVar(VarExpr e) {
 		// TODO replace/substitute the variable found in the map
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return current_map.get(e.identifier);
 	}
 	
 	// do not rewrite these parts of the AST
