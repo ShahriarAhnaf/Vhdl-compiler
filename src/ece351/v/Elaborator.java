@@ -124,53 +124,55 @@ public final class Elaborator extends PostOrderExprVisitor {
 				}	
 				//add local signals, add to signal list of current designUnit
 				for(String local_sig : comp_design.arch.signals){
-					a.appendSignal( "comp_" + local_sig);
-					current_map.put(local_sig, "comp_" + local_sig);
+					a = a.appendSignal( "comp_" + compCount + "_" + local_sig);
+					current_map.put(local_sig, "comp_" + compCount + "_" + local_sig);
 				}						
 				//loop through the statements in the architecture body		
 				// assumption that all entitys being substituted are only statements by induction
 				for(Statement s: comp_design.arch.statements){
-					a.appendStatement(s);
+					if(s instanceof AssignmentStatement){ 
+					// make the appropriate variable substitutions for signal assignment statements
+					// i.e., call changeStatementVars\
+						s = changeStatementVars((AssignmentStatement)s);
+					}
+					else if (s instanceof Process){ // should be a process
+						s  = expandProcessComponent((Process)s);
+					}
+					
+					a = a.appendStatement(s);
 				}
-				// make the appropriate variable substitutions for signal assignment statements
-				// i.e., call changeStatementVars\
 				
-
 			}
 			
-			// make the appropriate variable substitutions for processes (sensitivity list, if/else body statements)
-			// i.e., call expandProcessComponent
+			
 			 // append this new architecture to result
+			 result.append(du);
 		}
-			 // TODO: longer code snippet
-// throw new ece351.util.Todo351Exception();
 		assert result.repOk();
 		return result;
 	}
 	
 	// you do not have to use these helper methods; we found them useful though
 	private Process expandProcessComponent(final Process process) {
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		return process;
 	}
 	
 	// you do not have to use these helper methods; we found them useful though
 	private  IfElseStatement changeIfVars(final IfElseStatement s) {
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		return s;
 	}
 
 	// you do not have to use these helper methods; we found them useful though
 	private AssignmentStatement changeStatementVars(final AssignmentStatement s){
-// TODO: short code snippet
-throw new ece351.util.Todo351Exception();
+		return traverseAssignmentStatement(s);
 	}
 	
 	
 	@Override
 	public Expr visitVar(VarExpr e) {
 		// TODO replace/substitute the variable found in the map
-		return current_map.get(e.identifier);
+		// will make lots of duplicates this way
+		return new VarExpr(current_map.get(e.identifier));
 	}
 	
 	// do not rewrite these parts of the AST
