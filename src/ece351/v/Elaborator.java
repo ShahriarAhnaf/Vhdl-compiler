@@ -106,12 +106,13 @@ public final class Elaborator extends PostOrderExprVisitor {
 			for(String bruh : du.entity.output){
 				current_map.put(bruh, bruh);
 			}
+
 			for(Component c: du.arch.components) { // for every instance elaborate it.
 				compCount++;
 				
 				// find DU
 				DesignUnit comp_design = design_lookup.get(c.entityName);
-				
+				if(comp_design == null) continue;
 				//add input signals, map to ports
 				// always inputs first 
 				for(int i=0; i < comp_design.entity.input.size(); i++) {
@@ -120,7 +121,7 @@ public final class Elaborator extends PostOrderExprVisitor {
 				}
 				for(int i=comp_design.entity.input.size(); i < comp_design.entity.output.size()+comp_design.entity.input.size(); i++){
 				// add output signal map to port
-					current_map.put(comp_design.entity.output.get(i) ,c.signalList.get(i));
+					current_map.put(comp_design.entity.output.get(i-comp_design.entity.input.size()) ,c.signalList.get(i));
 				}	
 				//add local signals, add to signal list of current designUnit
 				for(String local_sig : comp_design.arch.signals){
@@ -138,15 +139,27 @@ public final class Elaborator extends PostOrderExprVisitor {
 					else if (s instanceof Process){ // should be a process
 						s  = expandProcessComponent((Process)s);
 					}
-					
+
 					a = a.appendStatement(s);
 				}
 				
 			}
-			
+			// simply append the old statements since they should just work.
+			for(Statement s: du.arch.statements){
+				if(s instanceof AssignmentStatement){ 
+				// make the appropriate variable substitutions for signal assignment statements
+				// i.e., call changeStatementVars\
+					s = changeStatementVars((AssignmentStatement)s);
+				}
+				else if (s instanceof Process){ // should be a process
+					s  = expandProcessComponent((Process)s);
+				}
+				a = a.appendStatement(s);
+			}
 			
 			 // append this new architecture to result
-			 result.append(du);
+			 DesignUnit new_du = new DesignUnit(a,du.entity);
+			 result = result.append(new_du);
 		}
 		assert result.repOk();
 		return result;
@@ -154,17 +167,37 @@ public final class Elaborator extends PostOrderExprVisitor {
 	
 	// you do not have to use these helper methods; we found them useful though
 	private Process expandProcessComponent(final Process process) {
-		return process;
+		Process p = new Process(ImmutableList.of(), ImmutableList.of());
+		for(String s : process.sensitivityList){
+			p.appendSensitivity(current_map.get(s)); // replacements
+		}
+		for(Statement s: process.sequentialStatements){
+			if(s instanceof AssignmentStatement){
+				s = changeStatementVars((AssignmentStatement)s);
+			} else if (s instanceof IfElseStatement){
+				s = changeIfVars((IfElseStatement)s);
+			}
+			p.appendStatement(s);
+		}
+		return p;
 	}
 	
 	// you do not have to use these helper methods; we found them useful though
 	private  IfElseStatement changeIfVars(final IfElseStatement s) {
-		return s;
+		IfElseStatement result = new IfElseStatement(traverseExpr(s.condition));
+			for(AssignmentStatement a : s.ifBody){
+			result.appendToTrueBlock(changeStatementVars(a));
+		}
+		for(AssignmentStatement a : s.elseBody){
+			result.appendToElseBlock(changeStatementVars(a));
+		}
+		return result;
 	}
 
 	// you do not have to use these helper methods; we found them useful though
 	private AssignmentStatement changeStatementVars(final AssignmentStatement s){
-		return traverseAssignmentStatement(s);
+		// final boss of nested statements
+		return traverseAssignmentStatement(s.varyOutputVar((VarExpr) visitVar(s.outputVar)));
 	}
 	
 	
@@ -172,6 +205,7 @@ public final class Elaborator extends PostOrderExprVisitor {
 	public Expr visitVar(VarExpr e) {
 		// TODO replace/substitute the variable found in the map
 		// will make lots of duplicates this way
+		assert current_map.get(e.identifier) != null;
 		return new VarExpr(current_map.get(e.identifier));
 	}
 	
