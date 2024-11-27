@@ -144,7 +144,8 @@ public final class Elaborator extends PostOrderExprVisitor {
 				}
 				
 			}
-			// simply append the old statements since they should just work.
+			// simply append the old statements since they should just work. but need to change vars
+			a = a.varyStatements(ImmutableList.of()); // empty statements
 			for(Statement s: du.arch.statements){
 				if(s instanceof AssignmentStatement){ 
 				// make the appropriate variable substitutions for signal assignment statements
@@ -158,7 +159,7 @@ public final class Elaborator extends PostOrderExprVisitor {
 			}
 			
 			 // append this new architecture to result
-			 DesignUnit new_du = new DesignUnit(a,du.entity);
+			 DesignUnit new_du = new DesignUnit(a, du.entity);
 			 result = result.append(new_du);
 		}
 		assert result.repOk();
