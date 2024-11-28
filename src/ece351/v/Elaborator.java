@@ -100,13 +100,26 @@ public final class Elaborator extends PostOrderExprVisitor {
 			// now we can build up this Architecture with new components.
 			// In the elaborator, an architectures list of signals, and set of statements may change (grow)
 			//populate dictionary/map
-			// for(String bruh : du.entity.input){
-			// 	current_map.put(bruh, bruh);
-			// }
-			// for(String bruh : du.entity.output){
-			// 	current_map.put(bruh, bruh);
-			// }
+			for(String bruh : du.entity.input){
+				current_map.put(bruh, bruh);
+			}
+			for(String bruh : du.entity.output){
+				current_map.put(bruh, bruh);
+			}
 
+			// simply append the old statements since they should just work. but need to change vars
+			a = a.varyStatements(ImmutableList.of()); // empty statements
+			for(Statement s: du.arch.statements){
+				if(s instanceof AssignmentStatement){ 
+				// make the appropriate variable substitutions for signal assignment statements
+				// i.e., call changeStatementVars\
+					s = traverseAssignmentStatement((AssignmentStatement)s);
+				}
+				else if (s instanceof Process){ 
+					s  = expandProcessComponent((Process)s);
+				}
+				a = a.appendStatement(s);
+			}
 			for(Component c: du.arch.components) { // for every instance elaborate it.
 				compCount++;
 				
@@ -125,10 +138,12 @@ public final class Elaborator extends PostOrderExprVisitor {
 				}	
 				//add local signals, add to signal list of current designUnit
 				for(String local_sig : comp_design.arch.signals){
-					a = a.appendSignal( "comp_" + compCount + "_" + local_sig);
-					current_map.put(local_sig, "comp_" + compCount + "_" + local_sig);
-				}						
-				//loop through the statements in the architecture body		
+					a = a.appendSignal( "comp" + compCount + "_" + local_sig);
+					current_map.put(local_sig, "comp" + compCount + "_" + local_sig);
+				}					
+
+				
+				//loop through the statements in the entity and make them for the instance		
 				// assumption that all entitys being substituted are only statements by induction
 				for(Statement s: comp_design.arch.statements){
 					if(s instanceof AssignmentStatement){ 
@@ -144,22 +159,10 @@ public final class Elaborator extends PostOrderExprVisitor {
 				}
 				
 			}
-			// simply append the old statements since they should just work. but need to change vars
-			a = a.varyStatements(ImmutableList.of()); // empty statements
-			for(Statement s: du.arch.statements){
-				if(s instanceof AssignmentStatement){ 
-				// make the appropriate variable substitutions for signal assignment statements
-				// i.e., call changeStatementVars\
-					s = changeStatementVars((AssignmentStatement)s);
-				}
-				else if (s instanceof Process){ // should be a process
-					s  = expandProcessComponent((Process)s);
-				}
-				a = a.appendStatement(s);
-			}
+			
 			
 			 // append this new architecture to result
-			 DesignUnit new_du = new DesignUnit(a, du.entity);
+			 DesignUnit new_du = new DesignUnit(a, du.entity); // a new DU with no components only statemetns
 			 result = result.append(new_du);
 		}
 		assert result.repOk();
@@ -170,7 +173,7 @@ public final class Elaborator extends PostOrderExprVisitor {
 	private Process expandProcessComponent(final Process process) {
 		Process p = new Process(ImmutableList.of(), ImmutableList.of());
 		for(String s : process.sensitivityList){
-			p.appendSensitivity(current_map.get(s)); // replacements
+			p = p.appendSensitivity(current_map.get(s)); // replacements
 		}
 		for(Statement s: process.sequentialStatements){
 			if(s instanceof AssignmentStatement){
@@ -178,7 +181,7 @@ public final class Elaborator extends PostOrderExprVisitor {
 			} else if (s instanceof IfElseStatement){
 				s = changeIfVars((IfElseStatement)s);
 			}
-			p.appendStatement(s);
+			p = p.appendStatement(s);
 		}
 		return p;
 	}
@@ -186,11 +189,11 @@ public final class Elaborator extends PostOrderExprVisitor {
 	// you do not have to use these helper methods; we found them useful though
 	private  IfElseStatement changeIfVars(final IfElseStatement s) {
 		IfElseStatement result = new IfElseStatement(traverseExpr(s.condition));
-			for(AssignmentStatement a : s.ifBody){
-			result.appendToTrueBlock(changeStatementVars(a));
+		for(AssignmentStatement a : s.ifBody){
+			result = result.appendToTrueBlock(changeStatementVars(a));
 		}
 		for(AssignmentStatement a : s.elseBody){
-			result.appendToElseBlock(changeStatementVars(a));
+			result = result.appendToElseBlock(changeStatementVars(a));
 		}
 		return result;
 	}
@@ -198,7 +201,7 @@ public final class Elaborator extends PostOrderExprVisitor {
 	// you do not have to use these helper methods; we found them useful though
 	private AssignmentStatement changeStatementVars(final AssignmentStatement s){
 		// final boss of nested statements
-		return traverseAssignmentStatement(s.varyOutputVar((VarExpr) visitVar(s.outputVar)));
+		return traverseAssignmentStatement(s.varyOutputVar( (VarExpr)visitVar(s.outputVar) ));
 	}
 	
 	
