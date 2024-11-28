@@ -94,7 +94,6 @@ public final class Elaborator extends PostOrderExprVisitor {
 			// iterate over all of the designUnits in root.
 			// for each one, construct a new architecture.
 			// design_lookup.put(du.arch.architectureName, du);
-			design_lookup.put(du.entity.identifier, du); // only need entity
 			Architecture a = du.arch.varyComponents(ImmutableList.<Component>of());
 			// this gives us a copy of the architecture with an empty list of components.
 			// now we can build up this Architecture with new components.
@@ -160,10 +159,10 @@ public final class Elaborator extends PostOrderExprVisitor {
 				
 			}
 			
-			
 			 // append this new architecture to result
 			 DesignUnit new_du = new DesignUnit(a, du.entity); // a new DU with no components only statemetns
 			 result = result.append(new_du);
+			 design_lookup.put(du.entity.identifier, new_du); // new entity lookup for next iterations
 		}
 		assert result.repOk();
 		return result;
@@ -173,7 +172,8 @@ public final class Elaborator extends PostOrderExprVisitor {
 	private Process expandProcessComponent(final Process process) {
 		Process p = new Process(ImmutableList.of(), ImmutableList.of());
 		for(String s : process.sensitivityList){
-			p = p.appendSensitivity(current_map.get(s)); // replacements
+			if(current_map.containsKey(s)) p = p.appendSensitivity(current_map.get(s)); // replacements
+			else p = p.appendSensitivity(s);
 		}
 		for(Statement s: process.sequentialStatements){
 			if(s instanceof AssignmentStatement){
