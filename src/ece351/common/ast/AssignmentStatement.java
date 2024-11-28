@@ -66,7 +66,7 @@ public final class AssignmentStatement extends Statement implements Examinable {
 	
     @Override
     public String toString() {
-		return outputVar.toString() + " <= " + expr.toString() + " ;";
+		return outputVar.toString() + " <= " + expr.toString() + ";";
     }
 
 	@Override
