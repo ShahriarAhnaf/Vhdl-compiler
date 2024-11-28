@@ -100,12 +100,12 @@ public final class Elaborator extends PostOrderExprVisitor {
 			// now we can build up this Architecture with new components.
 			// In the elaborator, an architectures list of signals, and set of statements may change (grow)
 			//populate dictionary/map
-			for(String bruh : du.entity.input){
-				current_map.put(bruh, bruh);
-			}
-			for(String bruh : du.entity.output){
-				current_map.put(bruh, bruh);
-			}
+			// for(String bruh : du.entity.input){
+			// 	current_map.put(bruh, bruh);
+			// }
+			// for(String bruh : du.entity.output){
+			// 	current_map.put(bruh, bruh);
+			// }
 
 			for(Component c: du.arch.components) { // for every instance elaborate it.
 				compCount++;
@@ -206,8 +206,10 @@ public final class Elaborator extends PostOrderExprVisitor {
 	public Expr visitVar(VarExpr e) {
 		// TODO replace/substitute the variable found in the map
 		// will make lots of duplicates this way
-		assert current_map.get(e.identifier) != null;
-		return new VarExpr(current_map.get(e.identifier));
+		if(current_map.containsKey(e.identifier)) {
+			return new VarExpr(current_map.get(e.identifier));
+		}
+		return e;
 	}
 	
 	// do not rewrite these parts of the AST
