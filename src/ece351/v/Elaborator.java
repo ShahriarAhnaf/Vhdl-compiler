@@ -207,8 +207,6 @@ public final class Elaborator extends PostOrderExprVisitor {
 	
 	@Override
 	public Expr visitVar(VarExpr e) {
-		// TODO replace/substitute the variable found in the map
-		// will make lots of duplicates this way
 		if(current_map.containsKey(e.identifier)) {
 			return new VarExpr(current_map.get(e.identifier));
 		}
