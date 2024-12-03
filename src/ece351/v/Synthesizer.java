@@ -88,20 +88,29 @@ public final class Synthesizer extends PostOrderExprVisitor {
 			// set varPrefix for this design unit
 		for(DesignUnit du: root.designUnits){
 			varPrefix = du.entity.identifier;
-			conditionPrefix = "condition" + condCount;
 			// no components
 			// only processes and statements
 			for(Statement stmt: du.arch.statements){
 				if(stmt instanceof Process){
-					// should have ONLY ONE IF STATEMENT
+					// 
 					Process p = (Process)stmt;
-					// assuming one statement per process and that its an assingment statement..
-					assert p.sequentialStatements.get(0) instanceof IfElseStatement :  "process does not have an if statement";
-					FProgram temp = implication((IfElseStatement)p.sequentialStatements.get(0));
-					result = result.appendAll(temp); // merge into
+					for(Statement s: p.sequentialStatements){
+						if(s instanceof IfElseStatement){
+							FProgram temp = implication((IfElseStatement)p.sequentialStatements.get(0));
+							result = result.appendAll(temp); // merge into
+						}
+						else{	
+							// just an assignment statement
+							VarExpr v = (VarExpr) visitVar(((AssignmentStatement)s).outputVar);
+							Expr e = traverseExpr( ((AssignmentStatement)s).expr );
+							result = result.append(new AssignmentStatement(v, e));
+						}
+					}
 				}else{
 					// just an assignment statement
-					result = result.append(stmt);
+					VarExpr v = (VarExpr) visitVar(((AssignmentStatement)stmt).outputVar);
+					Expr e = traverseExpr( ((AssignmentStatement)stmt).expr );
+					result = result.append(new AssignmentStatement(v, e));
 				}
 			}
 		}
@@ -122,7 +131,7 @@ public final class Synthesizer extends PostOrderExprVisitor {
 			throw new IllegalArgumentException("if/else statement: " + statement + "\n can only have one assignment statement in the if-body and else-body where the output variable is the same!");
 		}
 		condCount++; // legit if statement found.
-		VarExpr cond_var = new VarExpr(conditionPrefix+condCount);
+		VarExpr cond_var = new VarExpr(conditionPrefix +condCount);
 		Expr sub_condition = traverseExpr(statement.condition);
 		Expr sub_if_expr = traverseExpr(ifb.expr);
 		Expr sub_else_expr = traverseExpr(elb.expr);
