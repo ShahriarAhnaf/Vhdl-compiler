@@ -124,7 +124,7 @@ public final class Elaborator extends PostOrderExprVisitor {
 				
 				// find DU
 				DesignUnit comp_design = design_lookup.get(c.entityName);
-				if(comp_design == null) continue;
+				// if(comp_design == null) continue;
 				//add input signals, map to ports
 				// always inputs first 
 				for(int i=0; i < comp_design.entity.input.size(); i++) {
