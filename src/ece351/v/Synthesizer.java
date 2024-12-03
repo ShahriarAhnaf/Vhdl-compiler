@@ -26,6 +26,8 @@
 
 package ece351.v;
 
+import org.parboiled.common.ImmutableList;
+
 import ece351.common.ast.AndExpr;
 import ece351.common.ast.AssignmentStatement;
 import ece351.common.ast.ConstantExpr;
@@ -84,8 +86,25 @@ public final class Synthesizer extends PostOrderExprVisitor {
 	private FProgram synthesizeit(final VProgram root) {	
 		FProgram result = new FProgram();
 			// set varPrefix for this design unit
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		for(DesignUnit du: root.designUnits){
+			varPrefix = du.entity.identifier;
+			conditionPrefix = "condition" + condCount;
+			// no components
+			// only processes and statements
+			for(Statement stmt: du.arch.statements){
+				if(stmt instanceof Process){
+					// should have ONLY ONE IF STATEMENT
+					Process p = (Process)stmt;
+					// assuming one statement per process and that its an assingment statement..
+					assert p.sequentialStatements.get(0) instanceof IfElseStatement :  "process does not have an if statement";
+					FProgram temp = implication((IfElseStatement)p.sequentialStatements.get(0));
+					result = result.appendAll(temp); // merge into
+				}else{
+					// just an assignment statement
+					result = result.append(stmt);
+				}
+			}
+		}
 		return result;
 	}
 	
@@ -102,10 +121,22 @@ throw new ece351.util.Todo351Exception();
 		if (!ifb.outputVar.equals(elb.outputVar)) {
 			throw new IllegalArgumentException("if/else statement: " + statement + "\n can only have one assignment statement in the if-body and else-body where the output variable is the same!");
 		}
-
+		condCount++; // legit if statement found.
+		VarExpr cond_var = new VarExpr(conditionPrefix+condCount);
+		Expr sub_condition = traverseExpr(statement.condition);
+		Expr sub_if_expr = traverseExpr(ifb.expr);
+		Expr sub_else_expr = traverseExpr(elb.expr);
+		AssignmentStatement cond_stmt = new AssignmentStatement(
+			cond_var,
+			sub_condition
+		);
+		AssignmentStatement output_var = new AssignmentStatement(
+			new VarExpr(varPrefix + ifb.outputVar.identifier),
+			new OrExpr(new AndExpr(cond_var, sub_if_expr), new AndExpr(new NotExpr(cond_var), sub_else_expr ))
+		);
+		
 		// build result
-// TODO: longer code snippet
-throw new ece351.util.Todo351Exception();
+		return new FProgram(ImmutableList.of(cond_stmt, output_var));
 	}
 
 	/** Rewrite var names with prefix to mitigate name collision. */

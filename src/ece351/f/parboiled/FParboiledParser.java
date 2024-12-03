@@ -190,7 +190,7 @@ public /*final*/ class FParboiledParser extends FBase implements Constants {
         // checks if its an id 
         return Sequence(
                         TestNot(Keyword()),
-                        OneOrMore(Char()),
+                        Sequence(Char(), ZeroOrMore(FirstOf(Char(), Digit(), "_")) ), // need to accept _ and digits after too.... FORGOT UNTIL LAB 12 LOL
 						push(new VarExpr(match()))
                     );
      }
