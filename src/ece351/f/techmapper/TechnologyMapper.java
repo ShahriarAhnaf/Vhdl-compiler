@@ -35,6 +35,7 @@ import java.util.TreeSet;
 
 import org.parboiled.common.ImmutableList;
 
+import kodkod.engine.bool.Operator.Nary;
 import kodkod.util.collections.IdentityHashSet;
 import ece351.common.ast.AndExpr;
 import ece351.common.ast.AssignmentStatement;
@@ -225,6 +226,9 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 
 	@Override
 	public Expr visitNot(final NotExpr e) {
+			if(substitutions.get(e) == null){
+				substitutions.put(e, e); // again a demorgan ahh problem
+			}
 			edge(visitExpr(e.expr), e);
 			node(e.serialNumber(),e.serialNumber(), "../../gates/not_noleads.png");	
 			return substitutions.get(e);
@@ -261,7 +265,11 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 							new_list = new_list.append(lol);
 						}
 					}
-					return new NotExpr(new NaryOrExpr(new_list));
+					NaryOrExpr nor = new NaryOrExpr(new_list);
+					NotExpr le_not = new NotExpr(nor);
+					substitutions.put(le_not, le_not);
+					substitutions.put(nor, nor);
+					return le_not; // new demorganed expression
 			}
 			else 
 			{
@@ -272,7 +280,12 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 				// for (Expr child : e.children) {
 				// 	edge(child, substitutions.get(e));
 				// }
-				// return substitutions.get(e); // account for subexpression elimination 
+				// return substitutions.get(e); // account for subexpression elimination
+				// nary expressions might get changed mid traversal due to de morgans....
+				// THUS! 
+				if(substitutions.get(e) == null){
+					substitutions.put(e,e);
+				} 
 				node(e.serialNumber(),e.serialNumber(), "../../gates/or_noleads.png");
 				for (Expr child : e.children) {
 					visitExpr(child); // visit lower level first
@@ -310,6 +323,10 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 			// }
 			// return substitutions.get(e); // account for subexpression elimination
 			// THIS LOW KEY SHOULDNT WORK WTF
+			// THUS! DUE TO SUBSTITUION NARY CHANGES....
+			if(substitutions.get(e) == null){
+				substitutions.put(e,e);
+			} 
 			node(e.serialNumber(),e.serialNumber(), "../../gates/and_noleads.png");
 				for (Expr child : e.children) {
 					visitExpr(child); // visit lower level first
@@ -330,6 +347,8 @@ public final class TechnologyMapper extends PostOrderExprVisitor {
 	}
 
 	private void edge(final Expr source, final Expr target) {
+		assert substitutions.get(source) != null : "edge source no substitutions";
+		assert substitutions.get(target) != null : "edge target no substitutions";
 		edge(substitutions.get(source).serialNumber(), substitutions.get(target).serialNumber());
 	}
 	

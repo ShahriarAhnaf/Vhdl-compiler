@@ -106,7 +106,7 @@ public /*final*/ class WParboiledParser extends BaseParser351 {
      * that statement represents.
      */
     public Rule Name() {
-        return OneOrMore(Letter());
+        return Sequence( Letter(), ZeroOrMore(FirstOf(Letter(), CharRange('0', '9'), "_")));
     }
 
     /**
